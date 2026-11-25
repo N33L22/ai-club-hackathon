@@ -1,0 +1,21 @@
+{
+  "description": "Held-out references: written after the rules were tuned on testset.json and run once, without changing the rules afterwards. This is the fairer accuracy estimate.",
+  "references": [
+    { "expected": "verified", "kind": "real, classic", "ref": "Festinger, L. (1954). A theory of social comparison processes. Human Relations, 7(2), 117-140." },
+    { "expected": "verified", "kind": "real, classic", "ref": "Bandura, A. (1977). Self-efficacy: Toward a unifying theory of behavioral change. Psychological Review, 84(2), 191-215." },
+    { "expected": "verified", "kind": "real", "ref": "Deci, E. L., & Ryan, R. M. (2000). The \"what\" and \"why\" of goal pursuits: Human needs and the self-determination of behavior. Psychological Inquiry, 11(4), 227-268." },
+    { "expected": "verified", "kind": "real, conference paper", "ref": "He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep residual learning for image recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (pp. 770-778)." },
+    { "expected": "verified", "kind": "real", "ref": "Przybylski, A. K., Murayama, K., DeHaan, C. R., & Gladwell, V. (2013). Motivational, emotional, and behavioral correlates of fear of missing out. Computers in Human Behavior, 29(4), 1841-1848." },
+
+    { "expected": "not_found", "kind": "fabricated, real journal", "ref": "Larsen, K., & Mbeki, T. (2020). Doomscrolling and cortisol: A 6-week experience-sampling study of 900 undergraduates. Psychological Science, 31(8), 1002-1015." },
+    { "expected": "not_found", "kind": "fabricated, real journal", "ref": "Rossi, G. (2017). The attention economy and adolescent identity formation. American Journal of Sociology, 123(2), 455-490." },
+    { "expected": "not_found", "kind": "fabricated, fake DOI", "ref": "Chen, L., Gupta, A., & Novak, P. (2024). Large language models reduce plagiarism in first-year writing: A field experiment. Nature Human Behaviour, 8, 1201-1212. https://doi.org/10.1038/s41562-024-99999-x" },
+    { "expected": "not_found", "kind": "fabricated", "ref": "O'Brien, M. (2016). Mindfulness apps and exam anxiety in medical students: A randomised trial. The BMJ, 352, i1188." },
+
+    { "expected": "close_match", "kind": "wrong year (1957 for 1954)", "ref": "Festinger, L. (1957). A theory of social comparison processes. Human Relations, 7(2), 117-140." },
+    { "expected": "close_match", "kind": "title partly wrong", "ref": "Bandura, A. (1977). Self-efficacy: A unifying theory of human motivation. Psychological Review, 84(2)." },
+
+    { "expected": "retracted", "kind": "retracted, no DOI", "ref": "Stapel, D. A., & Lindenberg, S. (2011). Coping with chaos: How disordered contexts promote stereotyping and discrimination. Science, 332(6026), 251-253." },
+    { "expected": "retracted", "kind": "retracted, no DOI", "ref": "Schön, J. H., Meng, H., & Bao, Z. (2001). Self-assembled monolayer organic field-effect transistors. Nature, 413, 713-716." }
+  ]
+}

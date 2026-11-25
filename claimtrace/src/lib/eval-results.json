@@ -1,0 +1,48 @@
+{
+  "ranAt": "2026-11-24T19:41:30.925Z",
+  "total": 33,
+  "correct": 33,
+  "byExpected": {
+    "verified": {
+      "total": 14,
+      "correct": 14
+    },
+    "not_found": {
+      "total": 8,
+      "correct": 8
+    },
+    "close_match": {
+      "total": 5,
+      "correct": 5
+    },
+    "retracted": {
+      "total": 6,
+      "correct": 6
+    }
+  },
+  "mistakes": [],
+  "holdout": {
+    "ranAt": "2026-11-24T19:41:43.160Z",
+    "total": 13,
+    "correct": 13,
+    "byExpected": {
+      "verified": {
+        "total": 5,
+        "correct": 5
+      },
+      "not_found": {
+        "total": 4,
+        "correct": 4
+      },
+      "close_match": {
+        "total": 2,
+        "correct": 2
+      },
+      "retracted": {
+        "total": 2,
+        "correct": 2
+      }
+    },
+    "mistakes": []
+  }
+}

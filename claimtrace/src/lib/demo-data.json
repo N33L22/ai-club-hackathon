@@ -1,0 +1,1308 @@
+{
+ "project": {
+  "id": "demo-project",
+  "title": "Social media and adolescent mental health",
+  "question": "Does social media use harm adolescents' mental health, and how strong is the evidence?",
+  "style": "apa",
+  "createdAt": "2026-11-24T21:00:00.000Z",
+  "updatedAt": "2026-11-24T21:00:00.000Z",
+  "doc": {
+   "type": "doc",
+   "content": [
+    {
+     "type": "heading",
+     "attrs": {
+      "level": 2
+     },
+     "content": [
+      {
+       "type": "text",
+       "text": "Introduction"
+      }
+     ]
+    },
+    {
+     "type": "paragraph",
+     "content": [
+      {
+       "type": "text",
+       "text": "Concern about adolescents' social media use has grown alongside reports of rising depression. In a large US survey study, depressive symptoms and suicide rates among adolescents rose between 2010 and 2015, especially among girls "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-twenge"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". Smartphones and social media caused this rise in teenage depression "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-twenge"
+       }
+      },
+      {
+       "type": "text",
+       "text": "."
+      }
+     ]
+    },
+    {
+     "type": "heading",
+     "attrs": {
+      "level": 2
+     },
+     "content": [
+      {
+       "type": "text",
+       "text": "What longitudinal studies show"
+      }
+     ]
+    },
+    {
+     "type": "paragraph",
+     "content": [
+      {
+       "type": "text",
+       "text": "US adolescents who used social media for more than three hours a day may be at heightened risk of internalising problems "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-riehm"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". In the UK Millennium Cohort Study, the association between social media use and depressive symptoms was larger for girls than for boys "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-kelly"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". A systematic review of 13 studies reported that all domains correlated with depression, anxiety and psychological distress in adolescents "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-keles"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". Its authors warn of \"considerable caveats due to methodological limitations of cross-sectional design, sampling and measures\" "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-keles"
+       }
+      },
+      {
+       "type": "text",
+       "text": "."
+      }
+     ]
+    },
+    {
+     "type": "heading",
+     "attrs": {
+      "level": 2
+     },
+     "content": [
+      {
+       "type": "text",
+       "text": "A smaller effect than headlines suggest"
+      }
+     ]
+    },
+    {
+     "type": "paragraph",
+     "content": [
+      {
+       "type": "text",
+       "text": "The association between digital technology use and adolescent well-being is negative but small "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-orben"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". Moderate screen use may not be harmful at all "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-przybylski"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". A meta-analysis of 48 studies concluded that Instagram use doubles the risk of anxiety in teenagers "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-thompson"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". Adolescents also resist recommendation algorithms when they feel their freedom is threatened "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-lv"
+       }
+      },
+      {
+       "type": "text",
+       "text": ". Globally, one in seven 10 to 19-year-olds experiences a mental disorder "
+      },
+      {
+       "type": "citation",
+       "attrs": {
+        "id": "demo-src-who"
+       }
+      },
+      {
+       "type": "text",
+       "text": "."
+      }
+     ]
+    }
+   ]
+  },
+  "isDemo": true
+ },
+ "sources": [
+  {
+   "id": "demo-src-twenge",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.1177/2167702617723376",
+    "openalexId": "W2770314219",
+    "title": "Increases in Depressive Symptoms, Suicide-Related Outcomes, and Suicide Rates Among U.S. Adolescents After 2010 and Links to Increased New Media Screen Time",
+    "authors": [
+     {
+      "family": "Twenge",
+      "given": "Jean M."
+     },
+     {
+      "family": "Joiner",
+      "given": "Thomas E."
+     },
+     {
+      "family": "Rogers",
+      "given": "Megan L."
+     },
+     {
+      "family": "Martin",
+      "given": "Gabrielle N."
+     }
+    ],
+    "year": 2017,
+    "venue": "Clinical Psychological Science",
+    "publisher": "SAGE Publications",
+    "volume": "6",
+    "issue": "1",
+    "pages": "3-17",
+    "type": "article",
+    "url": "https://doi.org/10.1177/2167702617723376",
+    "abstract": "In two nationally representative surveys of U.S. adolescents in grades 8 through 12 ( N = 506,820) and national statistics on suicide deaths for those ages 13 to 18, adolescents’ depressive symptoms, suicide-related outcomes, and suicide rates increased between 2010 and 2015, especially among females. Adolescents who spent more time on new media (including social media and electronic devices such as smartphones) were more likely to report mental health issues, and adolescents who spent more time on nonscreen activities (in-person social interaction, sports/exercise, homework, print media, and attending religious services) were less likely. Since 2010, iGen adolescents have spent more time on new media screen activities and less time on nonscreen activities, which may account for the increases in depression and suicide. In contrast, cyclical economic factors such as unemployment and the Dow Jones Index were not linked to depressive symptoms or suicide rates when matched by year.",
+    "abstractSource": "openalex",
+    "isOa": false,
+    "citedBy": 2549,
+    "countries": [
+     "US"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": false,
+     "flaggedBy": [],
+     "updates": [
+      {
+       "type": "correction",
+       "doi": "10.1177/2167702618824060",
+       "date": "2019-01-14"
+      }
+     ]
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "verification": {
+    "status": "verified",
+    "reason": "Matched by DOI.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.1177/2167702617723376)."
+     },
+     {
+      "id": "matches",
+      "state": "pass",
+      "title": "Details match",
+      "detail": "Matched by DOI."
+     },
+     {
+      "id": "retraction",
+      "state": "warn",
+      "title": "Not retracted",
+      "detail": "No retraction, but the paper has editorial updates: correction (2019-01-14)."
+     }
+    ],
+    "matched": {
+     "doi": "10.1177/2167702617723376",
+     "openalexId": "W2770314219",
+     "title": "Increases in Depressive Symptoms, Suicide-Related Outcomes, and Suicide Rates Among U.S. Adolescents After 2010 and Links to Increased New Media Screen Time",
+     "authors": [
+      {
+       "family": "Twenge",
+       "given": "Jean M."
+      },
+      {
+       "family": "Joiner",
+       "given": "Thomas E."
+      },
+      {
+       "family": "Rogers",
+       "given": "Megan L."
+      },
+      {
+       "family": "Martin",
+       "given": "Gabrielle N."
+      }
+     ],
+     "year": 2017,
+     "venue": "Clinical Psychological Science",
+     "publisher": "SAGE Publications",
+     "volume": "6",
+     "issue": "1",
+     "pages": "3-17",
+     "type": "article",
+     "url": "https://doi.org/10.1177/2167702617723376",
+     "abstract": "In two nationally representative surveys of U.S. adolescents in grades 8 through 12 ( N = 506,820) and national statistics on suicide deaths for those ages 13 to 18, adolescents’ depressive symptoms, suicide-related outcomes, and suicide rates increased between 2010 and 2015, especially among females. Adolescents who spent more time on new media (including social media and electronic devices such as smartphones) were more likely to report mental health issues, and adolescents who spent more time on nonscreen activities (in-person social interaction, sports/exercise, homework, print media, and attending religious services) were less likely. Since 2010, iGen adolescents have spent more time on new media screen activities and less time on nonscreen activities, which may account for the increases in depression and suicide. In contrast, cyclical economic factors such as unemployment and the Dow Jones Index were not linked to depressive symptoms or suicide rates when matched by year.",
+     "abstractSource": "openalex",
+     "isOa": false,
+     "citedBy": 2549,
+     "countries": [
+      "US"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": false,
+      "flaggedBy": [],
+      "updates": [
+       {
+        "type": "correction",
+        "doi": "10.1177/2167702618824060",
+        "date": "2019-01-14"
+       }
+      ]
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "author": null,
+     "year": null
+    },
+    "checkedAt": "2026-11-24T19:05:55.171Z"
+   },
+   "folderId": "demo-folder-core",
+   "tags": [
+    "survey",
+    "US"
+   ],
+   "notes": "",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-riehm",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.1001/jamapsychiatry.2019.2325",
+    "openalexId": "W2972459530",
+    "title": "Associations Between Time Spent Using Social Media and Internalizing and Externalizing Problems Among US Youth",
+    "authors": [
+     {
+      "family": "Riehm",
+      "given": "Kira E."
+     },
+     {
+      "family": "Feder",
+      "given": "Kenneth A."
+     },
+     {
+      "family": "Tormohlen",
+      "given": "Kayla N."
+     },
+     {
+      "family": "Crum",
+      "given": "Rosa M."
+     },
+     {
+      "family": "Young",
+      "given": "Andrea S."
+     },
+     {
+      "family": "Green",
+      "given": "Kerry M."
+     },
+     {
+      "family": "Pacek",
+      "given": "Lauren R."
+     },
+     {
+      "family": "La Flair",
+      "given": "Lareina N."
+     },
+     {
+      "family": "Mojtabai",
+      "given": "Ramin"
+     }
+    ],
+    "year": 2019,
+    "venue": "JAMA Psychiatry",
+    "publisher": "American Medical Association (AMA)",
+    "volume": "76",
+    "issue": "12",
+    "pages": "1266",
+    "type": "article",
+    "url": "https://doi.org/10.1001/jamapsychiatry.2019.2325",
+    "abstract": "Importance: Social media use may be a risk factor for mental health problems in adolescents. However, few longitudinal studies have investigated this association, and none have quantified the proportion of mental health problems among adolescents attributable to social media use. Objective: To assess whether time spent using social media per day is prospectively associated with internalizing and externalizing problems among adolescents. Design, Setting, and Participants: This longitudinal cohort study of 6595 participants from waves 1 (September 12, 2013, to December 14, 2014), 2 (October 23, 2014, to October 30, 2015), and 3 (October 18, 2015, to October 23, 2016) of the Population Assessment of Tobacco and Health study, a nationally representative cohort study of US adolescents, assessed US adolescents via household interviews using audio computer-assisted self-interviewing. Data analysis was performed from January 14, 2019, to May 22, 2019. Exposures: Self-reported time spent on social media during a typical day (none, ≤30 minutes, >30 minutes to ≤3 hours, >3 hours to ≤6 hours, and >6 hours) during wave 2. Main Outcomes and Measure: Self-reported past-year internalizing problems alone, externalizing problems alone, and comorbid internalizing and externalizing problems during wave 3 using the Global Appraisal of Individual Needs-Short Screener. Results: A total of 6595 adolescents (aged 12-15 years during wave 1; 3400 [51.3%] male) were studied. In unadjusted analyses, spending more than 30 minutes of time on social media, compared with no use, was associated with increased risk of internalizing problems alone (≤30 minutes: relative risk ratio [RRR], 1.30; 95% CI, 0.94-1.78; >30 minutes to ≤3 hours: RRR, 1.89; 95% CI, 1.36-2.64; >3 to ≤6 hours: RRR, 2.47; 95% CI, 1.74-3.49; >6 hours: RRR, 2.83; 95% CI, 1.88-4.26) and comorbid internalizing and externalizing problems (≤30 minutes: RRR, 1.39; 95% CI, 1.06-1.82; >30 minutes to ≤3 hours: RRR, 2.34; 95% CI, 1.83-3.00; >3 to ≤6 hours: RRR, 3.15; 95% CI, 2.43-4.09; >6 hours: RRR, 4.29; 95% CI, 3.22-5.73); associations with externalizing problems were inconsistent. In adjusted analyses, use of social media for more than 3 hours per day compared with no use remained significantly associated with internalizing problems alone (>3 to ≤6 hours: RRR, 1.60; 95% CI, 1.11-2.31; >6 hours: RRR, 1.78; 95% CI, 1.15-2.77) and comorbid internalizing and externalizing problems (>3 to ≤6 hours: RRR, 2.01; 95% CI, 1.51-2.66; >6 hours: RRR, 2.44; 95% CI, 1.73-3.43) but not externalizing problems alone. Conclusions and Relevance: Adolescents who spend more than 3 hours per day using social media may be at heightened risk for mental health problems, particularly internalizing problems. Future research should determine whether setting limits on daily social media use, increasing media literacy, and redesigning social media platforms are effective means of reducing the burden of mental health problems in this population.",
+    "abstractSource": "openalex",
+    "isOa": true,
+    "oaUrl": "https://jamanetwork.com/journals/jamapsychiatry/articlepdf/2749480/jamapsychiatry_riehm_2019_oi_190054.pdf",
+    "citedBy": 754,
+    "countries": [
+     "US"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": false,
+     "flaggedBy": [],
+     "updates": []
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "verification": {
+    "status": "verified",
+    "reason": "Matched by DOI.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.1001/jamapsychiatry.2019.2325)."
+     },
+     {
+      "id": "matches",
+      "state": "pass",
+      "title": "Details match",
+      "detail": "Matched by DOI."
+     },
+     {
+      "id": "retraction",
+      "state": "pass",
+      "title": "Not retracted",
+      "detail": "No retraction notice in Crossref (incl. Retraction Watch) or OpenAlex."
+     }
+    ],
+    "matched": {
+     "doi": "10.1001/jamapsychiatry.2019.2325",
+     "openalexId": "W2972459530",
+     "title": "Associations Between Time Spent Using Social Media and Internalizing and Externalizing Problems Among US Youth",
+     "authors": [
+      {
+       "family": "Riehm",
+       "given": "Kira E."
+      },
+      {
+       "family": "Feder",
+       "given": "Kenneth A."
+      },
+      {
+       "family": "Tormohlen",
+       "given": "Kayla N."
+      },
+      {
+       "family": "Crum",
+       "given": "Rosa M."
+      },
+      {
+       "family": "Young",
+       "given": "Andrea S."
+      },
+      {
+       "family": "Green",
+       "given": "Kerry M."
+      },
+      {
+       "family": "Pacek",
+       "given": "Lauren R."
+      },
+      {
+       "family": "La Flair",
+       "given": "Lareina N."
+      },
+      {
+       "family": "Mojtabai",
+       "given": "Ramin"
+      }
+     ],
+     "year": 2019,
+     "venue": "JAMA Psychiatry",
+     "publisher": "American Medical Association (AMA)",
+     "volume": "76",
+     "issue": "12",
+     "pages": "1266",
+     "type": "article",
+     "url": "https://doi.org/10.1001/jamapsychiatry.2019.2325",
+     "abstract": "Importance: Social media use may be a risk factor for mental health problems in adolescents. However, few longitudinal studies have investigated this association, and none have quantified the proportion of mental health problems among adolescents attributable to social media use. Objective: To assess whether time spent using social media per day is prospectively associated with internalizing and externalizing problems among adolescents. Design, Setting, and Participants: This longitudinal cohort study of 6595 participants from waves 1 (September 12, 2013, to December 14, 2014), 2 (October 23, 2014, to October 30, 2015), and 3 (October 18, 2015, to October 23, 2016) of the Population Assessment of Tobacco and Health study, a nationally representative cohort study of US adolescents, assessed US adolescents via household interviews using audio computer-assisted self-interviewing. Data analysis was performed from January 14, 2019, to May 22, 2019. Exposures: Self-reported time spent on social media during a typical day (none, ≤30 minutes, >30 minutes to ≤3 hours, >3 hours to ≤6 hours, and >6 hours) during wave 2. Main Outcomes and Measure: Self-reported past-year internalizing problems alone, externalizing problems alone, and comorbid internalizing and externalizing problems during wave 3 using the Global Appraisal of Individual Needs-Short Screener. Results: A total of 6595 adolescents (aged 12-15 years during wave 1; 3400 [51.3%] male) were studied. In unadjusted analyses, spending more than 30 minutes of time on social media, compared with no use, was associated with increased risk of internalizing problems alone (≤30 minutes: relative risk ratio [RRR], 1.30; 95% CI, 0.94-1.78; >30 minutes to ≤3 hours: RRR, 1.89; 95% CI, 1.36-2.64; >3 to ≤6 hours: RRR, 2.47; 95% CI, 1.74-3.49; >6 hours: RRR, 2.83; 95% CI, 1.88-4.26) and comorbid internalizing and externalizing problems (≤30 minutes: RRR, 1.39; 95% CI, 1.06-1.82; >30 minutes to ≤3 hours: RRR, 2.34; 95% CI, 1.83-3.00; >3 to ≤6 hours: RRR, 3.15; 95% CI, 2.43-4.09; >6 hours: RRR, 4.29; 95% CI, 3.22-5.73); associations with externalizing problems were inconsistent. In adjusted analyses, use of social media for more than 3 hours per day compared with no use remained significantly associated with internalizing problems alone (>3 to ≤6 hours: RRR, 1.60; 95% CI, 1.11-2.31; >6 hours: RRR, 1.78; 95% CI, 1.15-2.77) and comorbid internalizing and externalizing problems (>3 to ≤6 hours: RRR, 2.01; 95% CI, 1.51-2.66; >6 hours: RRR, 2.44; 95% CI, 1.73-3.43) but not externalizing problems alone. Conclusions and Relevance: Adolescents who spend more than 3 hours per day using social media may be at heightened risk for mental health problems, particularly internalizing problems. Future research should determine whether setting limits on daily social media use, increasing media literacy, and redesigning social media platforms are effective means of reducing the burden of mental health problems in this population.",
+     "abstractSource": "openalex",
+     "isOa": true,
+     "oaUrl": "https://jamanetwork.com/journals/jamapsychiatry/articlepdf/2749480/jamapsychiatry_riehm_2019_oi_190054.pdf",
+     "citedBy": 754,
+     "countries": [
+      "US"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": false,
+      "flaggedBy": [],
+      "updates": []
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "author": null,
+     "year": null
+    },
+    "checkedAt": "2026-11-24T19:05:55.230Z"
+   },
+   "folderId": "demo-folder-core",
+   "tags": [
+    "cohort",
+    "US"
+   ],
+   "notes": "",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-kelly",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.1016/j.eclinm.2018.12.005",
+    "openalexId": "W2908500884",
+    "title": "Social Media Use and Adolescent Mental Health: Findings From the UK Millennium Cohort Study",
+    "authors": [
+     {
+      "family": "Kelly",
+      "given": "Yvonne"
+     },
+     {
+      "family": "Zilanawala",
+      "given": "Afshin"
+     },
+     {
+      "family": "Booker",
+      "given": "Cara"
+     },
+     {
+      "family": "Sacker",
+      "given": "Amanda"
+     }
+    ],
+    "year": 2018,
+    "venue": "EClinicalMedicine",
+    "publisher": "Elsevier BV",
+    "volume": "6",
+    "pages": "59-68",
+    "type": "article",
+    "url": "https://doi.org/10.1016/j.eclinm.2018.12.005",
+    "abstract": "BACKGROUND: Evidence suggests social media use is associated with mental health in young people but underlying processes are not well understood. This paper i) assesses whether social media use is associated with adolescents' depressive symptoms, and ii) investigates multiple potential explanatory pathways via online harassment, sleep, self-esteem and body image. METHODS: We used population based data from the UK Millennium Cohort Study on 10,904 14 year olds. Multivariate regression and path models were used to examine associations between social media use and depressive symptoms. FINDINGS: The magnitude of association between social media use and depressive symptoms was larger for girls than for boys. Compared with 1-3 h of daily use: 3 to < 5 h 26% increase in scores vs 21%; ≥ 5 h 50% vs 35% for girls and boys respectively. Greater social media use related to online harassment, poor sleep, low self-esteem and poor body image; in turn these related to higher depressive symptom scores. Multiple potential intervening pathways were apparent, for example: greater hours social media use related to body weight dissatisfaction (≥ 5 h 31% more likely to be dissatisfied), which in turn linked to depressive symptom scores directly (body dissatisfaction 15% higher depressive symptom scores) and indirectly via self-esteem. INTERPRETATION: Our findings highlight the potential pitfalls of lengthy social media use for young people's mental health. Findings are highly relevant for the development of guidelines for the safe use of social media and calls on industry to more tightly regulate hours of social media use. FUNDING: Economic and Social Research Council.",
+    "abstractSource": "openalex",
+    "isOa": true,
+    "oaUrl": "http://www.thelancet.com/article/S2589537018300609/pdf",
+    "citedBy": 1161,
+    "countries": [
+     "GB"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": false,
+     "flaggedBy": [],
+     "updates": []
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "verification": {
+    "status": "verified",
+    "reason": "Matched by DOI.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.1016/j.eclinm.2018.12.005)."
+     },
+     {
+      "id": "matches",
+      "state": "pass",
+      "title": "Details match",
+      "detail": "Matched by DOI."
+     },
+     {
+      "id": "retraction",
+      "state": "pass",
+      "title": "Not retracted",
+      "detail": "No retraction notice in Crossref (incl. Retraction Watch) or OpenAlex."
+     }
+    ],
+    "matched": {
+     "doi": "10.1016/j.eclinm.2018.12.005",
+     "openalexId": "W2908500884",
+     "title": "Social Media Use and Adolescent Mental Health: Findings From the UK Millennium Cohort Study",
+     "authors": [
+      {
+       "family": "Kelly",
+       "given": "Yvonne"
+      },
+      {
+       "family": "Zilanawala",
+       "given": "Afshin"
+      },
+      {
+       "family": "Booker",
+       "given": "Cara"
+      },
+      {
+       "family": "Sacker",
+       "given": "Amanda"
+      }
+     ],
+     "year": 2018,
+     "venue": "EClinicalMedicine",
+     "publisher": "Elsevier BV",
+     "volume": "6",
+     "pages": "59-68",
+     "type": "article",
+     "url": "https://doi.org/10.1016/j.eclinm.2018.12.005",
+     "abstract": "BACKGROUND: Evidence suggests social media use is associated with mental health in young people but underlying processes are not well understood. This paper i) assesses whether social media use is associated with adolescents' depressive symptoms, and ii) investigates multiple potential explanatory pathways via online harassment, sleep, self-esteem and body image. METHODS: We used population based data from the UK Millennium Cohort Study on 10,904 14 year olds. Multivariate regression and path models were used to examine associations between social media use and depressive symptoms. FINDINGS: The magnitude of association between social media use and depressive symptoms was larger for girls than for boys. Compared with 1-3 h of daily use: 3 to < 5 h 26% increase in scores vs 21%; ≥ 5 h 50% vs 35% for girls and boys respectively. Greater social media use related to online harassment, poor sleep, low self-esteem and poor body image; in turn these related to higher depressive symptom scores. Multiple potential intervening pathways were apparent, for example: greater hours social media use related to body weight dissatisfaction (≥ 5 h 31% more likely to be dissatisfied), which in turn linked to depressive symptom scores directly (body dissatisfaction 15% higher depressive symptom scores) and indirectly via self-esteem. INTERPRETATION: Our findings highlight the potential pitfalls of lengthy social media use for young people's mental health. Findings are highly relevant for the development of guidelines for the safe use of social media and calls on industry to more tightly regulate hours of social media use. FUNDING: Economic and Social Research Council.",
+     "abstractSource": "openalex",
+     "isOa": true,
+     "oaUrl": "http://www.thelancet.com/article/S2589537018300609/pdf",
+     "citedBy": 1161,
+     "countries": [
+      "GB"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": false,
+      "flaggedBy": [],
+      "updates": []
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "author": null,
+     "year": null
+    },
+    "checkedAt": "2026-11-24T19:05:55.269Z"
+   },
+   "folderId": "demo-folder-core",
+   "tags": [
+    "cohort",
+    "UK"
+   ],
+   "notes": "",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-keles",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.1080/02673843.2019.1590851",
+    "openalexId": "W2924664363",
+    "title": "A systematic review: the influence of social media on depression, anxiety and psychological distress in adolescents",
+    "authors": [
+     {
+      "family": "Keles",
+      "given": "Betul"
+     },
+     {
+      "family": "McCrae",
+      "given": "Niall"
+     },
+     {
+      "family": "Grealish",
+      "given": "Annmarie"
+     }
+    ],
+    "year": 2019,
+    "venue": "International Journal of Adolescence and Youth",
+    "publisher": "Informa UK Limited",
+    "volume": "25",
+    "issue": "1",
+    "pages": "79-93",
+    "type": "review",
+    "url": "https://doi.org/10.1080/02673843.2019.1590851",
+    "abstract": "While becoming inextricable to our daily lives, online social media are blamed for increasing mental health problems in younger people. This systematic review synthesized evidence on the influence of social media use on depression, anxiety and psychological distress in adolescents. A search of PsycINFO, Medline, Embase, CINAHL and SSCI databases reaped 13 eligible studies, of which 12 were cross-sectional. Findings were classified into four domains of social media: time spent, activity, investment and addiction. All domains correlated with depression, anxiety and psychological distress. However, there are considerable caveats due to methodological limitations of cross-sectional design, sampling and measures. Mechanisms of the putative effects of social media on mental health should be explored further through qualitative enquiry and longitudinal cohort studies.",
+    "abstractSource": "openalex",
+    "isOa": true,
+    "oaUrl": "https://www.tandfonline.com/doi/pdf/10.1080/02673843.2019.1590851?needAccess=true",
+    "citedBy": 3297,
+    "countries": [
+     "GB"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": false,
+     "flaggedBy": [],
+     "updates": []
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "verification": {
+    "status": "verified",
+    "reason": "Matched by DOI.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.1080/02673843.2019.1590851)."
+     },
+     {
+      "id": "matches",
+      "state": "pass",
+      "title": "Details match",
+      "detail": "Matched by DOI."
+     },
+     {
+      "id": "retraction",
+      "state": "pass",
+      "title": "Not retracted",
+      "detail": "No retraction notice in Crossref (incl. Retraction Watch) or OpenAlex."
+     }
+    ],
+    "matched": {
+     "doi": "10.1080/02673843.2019.1590851",
+     "openalexId": "W2924664363",
+     "title": "A systematic review: the influence of social media on depression, anxiety and psychological distress in adolescents",
+     "authors": [
+      {
+       "family": "Keles",
+       "given": "Betul"
+      },
+      {
+       "family": "McCrae",
+       "given": "Niall"
+      },
+      {
+       "family": "Grealish",
+       "given": "Annmarie"
+      }
+     ],
+     "year": 2019,
+     "venue": "International Journal of Adolescence and Youth",
+     "publisher": "Informa UK Limited",
+     "volume": "25",
+     "issue": "1",
+     "pages": "79-93",
+     "type": "review",
+     "url": "https://doi.org/10.1080/02673843.2019.1590851",
+     "abstract": "While becoming inextricable to our daily lives, online social media are blamed for increasing mental health problems in younger people. This systematic review synthesized evidence on the influence of social media use on depression, anxiety and psychological distress in adolescents. A search of PsycINFO, Medline, Embase, CINAHL and SSCI databases reaped 13 eligible studies, of which 12 were cross-sectional. Findings were classified into four domains of social media: time spent, activity, investment and addiction. All domains correlated with depression, anxiety and psychological distress. However, there are considerable caveats due to methodological limitations of cross-sectional design, sampling and measures. Mechanisms of the putative effects of social media on mental health should be explored further through qualitative enquiry and longitudinal cohort studies.",
+     "abstractSource": "openalex",
+     "isOa": true,
+     "oaUrl": "https://www.tandfonline.com/doi/pdf/10.1080/02673843.2019.1590851?needAccess=true",
+     "citedBy": 3297,
+     "countries": [
+      "GB"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": false,
+      "flaggedBy": [],
+      "updates": []
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "author": null,
+     "year": null
+    },
+    "checkedAt": "2026-11-24T19:05:55.300Z"
+   },
+   "folderId": "demo-folder-core",
+   "tags": [
+    "systematic review"
+   ],
+   "notes": "",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-orben",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.1038/s41562-018-0506-1",
+    "openalexId": "W2911168426",
+    "title": "The association between adolescent well-being and digital technology use",
+    "authors": [
+     {
+      "family": "Orben",
+      "given": "Amy"
+     },
+     {
+      "family": "Przybylski",
+      "given": "Andrew K."
+     }
+    ],
+    "year": 2019,
+    "venue": "Nature Human Behaviour",
+    "publisher": "Springer Science and Business Media LLC",
+    "volume": "3",
+    "issue": "2",
+    "pages": "173-182",
+    "type": "article",
+    "url": "https://doi.org/10.1038/s41562-018-0506-1",
+    "isOa": true,
+    "oaUrl": "https://ora.ox.ac.uk/objects/uuid:5d844350-a359-47d3-b10c-4bfb93ce613b/files/m1139efb332d78a15e737adf5b68292a6",
+    "citedBy": 2204,
+    "countries": [
+     "GB"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": false,
+     "flaggedBy": [],
+     "updates": []
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "verification": {
+    "status": "verified",
+    "reason": "Matched by DOI.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.1038/s41562-018-0506-1)."
+     },
+     {
+      "id": "matches",
+      "state": "pass",
+      "title": "Details match",
+      "detail": "Matched by DOI."
+     },
+     {
+      "id": "retraction",
+      "state": "pass",
+      "title": "Not retracted",
+      "detail": "No retraction notice in Crossref (incl. Retraction Watch) or OpenAlex."
+     }
+    ],
+    "matched": {
+     "doi": "10.1038/s41562-018-0506-1",
+     "openalexId": "W2911168426",
+     "title": "The association between adolescent well-being and digital technology use",
+     "authors": [
+      {
+       "family": "Orben",
+       "given": "Amy"
+      },
+      {
+       "family": "Przybylski",
+       "given": "Andrew K."
+      }
+     ],
+     "year": 2019,
+     "venue": "Nature Human Behaviour",
+     "publisher": "Springer Science and Business Media LLC",
+     "volume": "3",
+     "issue": "2",
+     "pages": "173-182",
+     "type": "article",
+     "url": "https://doi.org/10.1038/s41562-018-0506-1",
+     "isOa": true,
+     "oaUrl": "https://ora.ox.ac.uk/objects/uuid:5d844350-a359-47d3-b10c-4bfb93ce613b/files/m1139efb332d78a15e737adf5b68292a6",
+     "citedBy": 2204,
+     "countries": [
+      "GB"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": false,
+      "flaggedBy": [],
+      "updates": []
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "author": null,
+     "year": null
+    },
+    "checkedAt": "2026-11-24T19:05:55.715Z"
+   },
+   "folderId": "demo-folder-core",
+   "tags": [
+    "large-scale"
+   ],
+   "notes": "No abstract in OpenAlex. Paste the abstract I read to check claims.",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-przybylski",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.1177/0956797616678438",
+    "openalexId": "W2578856715",
+    "title": "A Large-Scale Test of the Goldilocks Hypothesis: Quantifying the Relations Between Digital-Screen Use and the Mental Well-Being of Adolescents",
+    "authors": [
+     {
+      "family": "Przybylski",
+      "given": "Andrew K."
+     },
+     {
+      "family": "Weinstein",
+      "given": "Netta"
+     }
+    ],
+    "year": 2017,
+    "venue": "Psychological Science",
+    "publisher": "SAGE Publications",
+    "volume": "28",
+    "issue": "2",
+    "pages": "204-215",
+    "type": "article",
+    "url": "https://doi.org/10.1177/0956797616678438",
+    "abstract": "Although the time adolescents spend with digital technologies has sparked widespread concerns that their use might be negatively associated with mental well-being, these potential deleterious influences have not been rigorously studied. Using a preregistered plan for analyzing data collected from a representative sample of English adolescents ( n = 120,115), we obtained evidence that the links between digital-screen time and mental well-being are described by quadratic functions. Further, our results showed that these links vary as a function of when digital technologies are used (i.e., weekday vs. weekend), suggesting that a full understanding of the impact of these recreational activities will require examining their functionality among other daily pursuits. Overall, the evidence indicated that moderate use of digital technology is not intrinsically harmful and may be advantageous in a connected world. The findings inform recommendations for limiting adolescents' technology use and provide a template for conducting rigorous investigations into the relations between digital technology and children's and adolescents' health.",
+    "abstractSource": "openalex",
+    "isOa": true,
+    "oaUrl": "https://doi.org/10.1177/0956797616678438",
+    "citedBy": 1484,
+    "countries": [
+     "GB"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": false,
+     "flaggedBy": [],
+     "updates": []
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "entered": {
+    "raw": "Przybylski, A. K., & Weinstein, N. (2014). A large-scale test of the Goldilocks hypothesis: Quantifying the relations between digital-screen use and the mental well-being of adolescents. Psychological Science."
+   },
+   "verification": {
+    "status": "close_match",
+    "reason": "Close match: year differs: your reference has 2014, the record has 2017. Confirm this is the paper you mean.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.1177/0956797616678438)."
+     },
+     {
+      "id": "matches",
+      "state": "warn",
+      "title": "Close match",
+      "detail": "Close match: year differs: your reference has 2014, the record has 2017. Confirm this is the paper you mean."
+     },
+     {
+      "id": "retraction",
+      "state": "pass",
+      "title": "Not retracted",
+      "detail": "No retraction notice in Crossref (incl. Retraction Watch) or OpenAlex."
+     }
+    ],
+    "matched": {
+     "doi": "10.1177/0956797616678438",
+     "openalexId": "W2578856715",
+     "title": "A Large-Scale Test of the Goldilocks Hypothesis: Quantifying the Relations Between Digital-Screen Use and the Mental Well-Being of Adolescents",
+     "authors": [
+      {
+       "family": "Przybylski",
+       "given": "Andrew K."
+      },
+      {
+       "family": "Weinstein",
+       "given": "Netta"
+      }
+     ],
+     "year": 2017,
+     "venue": "Psychological Science",
+     "publisher": "SAGE Publications",
+     "volume": "28",
+     "issue": "2",
+     "pages": "204-215",
+     "type": "article",
+     "url": "https://doi.org/10.1177/0956797616678438",
+     "abstract": "Although the time adolescents spend with digital technologies has sparked widespread concerns that their use might be negatively associated with mental well-being, these potential deleterious influences have not been rigorously studied. Using a preregistered plan for analyzing data collected from a representative sample of English adolescents ( n = 120,115), we obtained evidence that the links between digital-screen time and mental well-being are described by quadratic functions. Further, our results showed that these links vary as a function of when digital technologies are used (i.e., weekday vs. weekend), suggesting that a full understanding of the impact of these recreational activities will require examining their functionality among other daily pursuits. Overall, the evidence indicated that moderate use of digital technology is not intrinsically harmful and may be advantageous in a connected world. The findings inform recommendations for limiting adolescents' technology use and provide a template for conducting rigorous investigations into the relations between digital technology and children's and adolescents' health.",
+     "abstractSource": "openalex",
+     "isOa": true,
+     "oaUrl": "https://doi.org/10.1177/0956797616678438",
+     "citedBy": 1484,
+     "countries": [
+      "GB"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": false,
+      "flaggedBy": [],
+      "updates": []
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "title": 1,
+     "author": true,
+     "year": false
+    },
+    "checkedAt": "2026-11-24T19:05:55.748Z"
+   },
+   "folderId": "demo-folder-check",
+   "tags": [
+    "screen time"
+   ],
+   "notes": "Reference copied from an old reading list.",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-thompson",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "title": "Instagram use and adolescent anxiety: A meta-analysis of 48 studies",
+    "authors": [
+     {
+      "family": "Thompson",
+      "given": "R."
+     },
+     {
+      "family": "Okafor",
+      "given": "L."
+     }
+    ],
+    "year": 2021,
+    "venue": "Journal of Adolescent Digital Health",
+    "doi": "10.1016/j.jadh.2021.03.007",
+    "foundIn": []
+   },
+   "entered": {
+    "raw": "Thompson, R., & Okafor, L. (2021). Instagram use and adolescent anxiety: A meta-analysis of 48 studies. Journal of Adolescent Digital Health, 12(3), 201-219. https://doi.org/10.1016/j.jadh.2021.03.007"
+   },
+   "verification": {
+    "status": "not_found",
+    "reason": "The DOI 10.1016/j.jadh.2021.03.007 is not registered in Crossref or OpenAlex.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "fail",
+      "title": "Not found",
+      "detail": "The DOI 10.1016/j.jadh.2021.03.007 is not registered in Crossref or OpenAlex."
+     },
+     {
+      "id": "matches",
+      "state": "skip",
+      "title": "Details",
+      "detail": "Skipped: nothing to compare against."
+     },
+     {
+      "id": "retraction",
+      "state": "skip",
+      "title": "Retraction",
+      "detail": "Skipped: no record to check."
+     }
+    ],
+    "checkedAt": "2026-11-24T19:05:55.779Z"
+   },
+   "folderId": "demo-folder-check",
+   "tags": [
+    "from chatbot"
+   ],
+   "notes": "Suggested by a chatbot. Check before citing.",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-lv",
+   "projectId": "demo-project",
+   "origin": "database",
+   "record": {
+    "doi": "10.3389/fpsyg.2022.859597",
+    "openalexId": "W4224326502",
+    "title": "RETRACTED: Adolescents’ Algorithmic Resistance to Short Video APP’s Recommendation: The Dual Mediating Role of Resistance Willingness and Resistance Intention",
+    "authors": [
+     {
+      "family": "Lv",
+      "given": "Xing"
+     },
+     {
+      "family": "Chen",
+      "given": "Yang"
+     },
+     {
+      "family": "Guo",
+      "given": "Weiqi"
+     }
+    ],
+    "year": 2022,
+    "venue": "Frontiers in Psychology",
+    "publisher": "Frontiers Media SA",
+    "volume": "13",
+    "type": "article",
+    "url": "https://doi.org/10.3389/fpsyg.2022.859597",
+    "abstract": "Adolescents have gradually become a vital group of interacting with social media recommendation algorithms. Although numerous studies have been conducted to investigate negative reactions (both psychological and behavioral reactance) that the dark side of recommendation algorithms brings to social media users, little is known about the resistance intention and behavior based on their agency in the daily process of encountering algorithms. Focusing on the concept of algorithm resistance, this study used a two-path model (distinguishing resistance willingness and resistance intention) to investigate the algorithmic resistance of rural Chinese adolescents (N = 905) in their daily use of short video apps. The findings revealed that the perceived threat to freedom, algorithmic literacy, and peer influence were positively associated with the resistance willingness and intention; while the independent psychology on algorithmic recommendations significantly weakened resistance willingness and intention. Furthermore, this study verified the mediating role of resistance willingness and intention between the above independent variables and resistance behavior. Additionally, the positive impact of resistance willingness on resistance intention was confirmed. In conclusion, this study offers a comprehensive approach to further understanding adolescents’ algorithmic resistance awareness and behavior by combining psychological factors, personal competency, and interpersonal influences, as well as two types of resistance reactions (rational and irrational).",
+    "abstractSource": "openalex",
+    "isOa": true,
+    "oaUrl": "https://www.frontiersin.org/articles/10.3389/fpsyg.2022.859597/pdf",
+    "citedBy": 31,
+    "countries": [
+     "CN"
+    ],
+    "language": "en",
+    "retraction": {
+     "retracted": true,
+     "noticeDoi": "10.3389/fpsyg.2025.1675601",
+     "date": "2025-08-07",
+     "flaggedBy": [
+      "crossref",
+      "openalex"
+     ],
+     "updates": [
+      {
+       "type": "retraction",
+       "doi": "10.3389/fpsyg.2025.1675601",
+       "date": "2025-08-07"
+      }
+     ]
+    },
+    "foundIn": [
+     "crossref",
+     "openalex"
+    ]
+   },
+   "verification": {
+    "status": "retracted",
+    "reason": "Retracted on 2025-08-07, flagged by Crossref (Retraction Watch data) and OpenAlex. Notice: 10.3389/fpsyg.2025.1675601.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "pass",
+      "title": "Exists",
+      "detail": "Found in Crossref and OpenAlex (DOI 10.3389/fpsyg.2022.859597)."
+     },
+     {
+      "id": "matches",
+      "state": "pass",
+      "title": "Details match",
+      "detail": "Matched by DOI."
+     },
+     {
+      "id": "retraction",
+      "state": "fail",
+      "title": "Retracted",
+      "detail": "Retracted on 2025-08-07, flagged by Crossref (Retraction Watch data) and OpenAlex. Notice: 10.3389/fpsyg.2025.1675601."
+     }
+    ],
+    "matched": {
+     "doi": "10.3389/fpsyg.2022.859597",
+     "openalexId": "W4224326502",
+     "title": "RETRACTED: Adolescents’ Algorithmic Resistance to Short Video APP’s Recommendation: The Dual Mediating Role of Resistance Willingness and Resistance Intention",
+     "authors": [
+      {
+       "family": "Lv",
+       "given": "Xing"
+      },
+      {
+       "family": "Chen",
+       "given": "Yang"
+      },
+      {
+       "family": "Guo",
+       "given": "Weiqi"
+      }
+     ],
+     "year": 2022,
+     "venue": "Frontiers in Psychology",
+     "publisher": "Frontiers Media SA",
+     "volume": "13",
+     "type": "article",
+     "url": "https://doi.org/10.3389/fpsyg.2022.859597",
+     "abstract": "Adolescents have gradually become a vital group of interacting with social media recommendation algorithms. Although numerous studies have been conducted to investigate negative reactions (both psychological and behavioral reactance) that the dark side of recommendation algorithms brings to social media users, little is known about the resistance intention and behavior based on their agency in the daily process of encountering algorithms. Focusing on the concept of algorithm resistance, this study used a two-path model (distinguishing resistance willingness and resistance intention) to investigate the algorithmic resistance of rural Chinese adolescents (N = 905) in their daily use of short video apps. The findings revealed that the perceived threat to freedom, algorithmic literacy, and peer influence were positively associated with the resistance willingness and intention; while the independent psychology on algorithmic recommendations significantly weakened resistance willingness and intention. Furthermore, this study verified the mediating role of resistance willingness and intention between the above independent variables and resistance behavior. Additionally, the positive impact of resistance willingness on resistance intention was confirmed. In conclusion, this study offers a comprehensive approach to further understanding adolescents’ algorithmic resistance awareness and behavior by combining psychological factors, personal competency, and interpersonal influences, as well as two types of resistance reactions (rational and irrational).",
+     "abstractSource": "openalex",
+     "isOa": true,
+     "oaUrl": "https://www.frontiersin.org/articles/10.3389/fpsyg.2022.859597/pdf",
+     "citedBy": 31,
+     "countries": [
+      "CN"
+     ],
+     "language": "en",
+     "retraction": {
+      "retracted": true,
+      "noticeDoi": "10.3389/fpsyg.2025.1675601",
+      "date": "2025-08-07",
+      "flaggedBy": [
+       "crossref",
+       "openalex"
+      ],
+      "updates": [
+       {
+        "type": "retraction",
+        "doi": "10.3389/fpsyg.2025.1675601",
+        "date": "2025-08-07"
+       }
+      ]
+     },
+     "foundIn": [
+      "crossref",
+      "openalex"
+     ]
+    },
+    "scores": {
+     "author": null,
+     "year": null
+    },
+    "checkedAt": "2026-11-24T19:05:55.814Z"
+   },
+   "folderId": "demo-folder-check",
+   "tags": [
+    "algorithms"
+   ],
+   "notes": "",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-src-who",
+   "projectId": "demo-project",
+   "origin": "student",
+   "record": {
+    "title": "Mental health of adolescents",
+    "authors": [
+     {
+      "family": "World Health Organization"
+     }
+    ],
+    "year": 2024,
+    "url": "https://www.who.int/news-room/fact-sheets/detail/adolescent-mental-health",
+    "venue": "WHO fact sheets",
+    "type": "webpage",
+    "foundIn": []
+   },
+   "verification": {
+    "status": "student_added",
+    "reason": "Added by you without a DOI or database record. Not verified.",
+    "steps": [
+     {
+      "id": "exists",
+      "state": "skip",
+      "title": "Not looked up",
+      "detail": "Web pages and reports without a DOI are not in Crossref or OpenAlex."
+     },
+     {
+      "id": "matches",
+      "state": "skip",
+      "title": "Details",
+      "detail": "Entered by you: please double-check the URL, author and date."
+     },
+     {
+      "id": "retraction",
+      "state": "skip",
+      "title": "Retraction",
+      "detail": "Not applicable."
+     }
+    ],
+    "checkedAt": "2026-11-24T21:00:00.000Z"
+   },
+   "accessedAt": "2026-11-24T00:00:00.000Z",
+   "folderId": "demo-folder-check",
+   "tags": [
+    "statistics",
+    "web"
+   ],
+   "notes": "",
+   "addedAt": "2026-11-24T21:00:00.000Z",
+   "approvedAt": "2026-11-24T21:00:00.000Z"
+  }
+ ],
+ "folders": [
+  {
+   "id": "demo-folder-core",
+   "projectId": "demo-project",
+   "name": "Core evidence",
+   "createdAt": "2026-11-24T21:00:00.000Z"
+  },
+  {
+   "id": "demo-folder-check",
+   "projectId": "demo-project",
+   "name": "To double-check",
+   "createdAt": "2026-11-24T21:00:00.000Z"
+  }
+ ]
+}

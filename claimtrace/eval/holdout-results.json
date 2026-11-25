@@ -1,0 +1,132 @@
+{
+  "summary": {
+    "ranAt": "2026-11-24T19:41:43.160Z",
+    "total": 13,
+    "correct": 13,
+    "byExpected": {
+      "verified": {
+        "total": 5,
+        "correct": 5
+      },
+      "not_found": {
+        "total": 4,
+        "correct": 4
+      },
+      "close_match": {
+        "total": 2,
+        "correct": 2
+      },
+      "retracted": {
+        "total": 2,
+        "correct": 2
+      }
+    },
+    "mistakes": []
+  },
+  "rows": [
+    {
+      "expected": "verified",
+      "kind": "real, classic",
+      "ref": "Festinger, L. (1954). A theory of social comparison processes. Human Relations, 7(2), 117-140.",
+      "got": "verified",
+      "ok": true,
+      "reason": "Title, first author and year match a database record."
+    },
+    {
+      "expected": "verified",
+      "kind": "real, classic",
+      "ref": "Bandura, A. (1977). Self-efficacy: Toward a unifying theory of behavioral change. Psychological Review, 84(2), 191-215.",
+      "got": "verified",
+      "ok": true,
+      "reason": "Title, first author and year match a database record."
+    },
+    {
+      "expected": "verified",
+      "kind": "real",
+      "ref": "Deci, E. L., & Ryan, R. M. (2000). The \"what\" and \"why\" of goal pursuits: Human needs and the self-determination of behavior. Psychological Inquiry, 11(4), 227-268.",
+      "got": "verified",
+      "ok": true,
+      "reason": "Title, first author and year match a database record."
+    },
+    {
+      "expected": "verified",
+      "kind": "real, conference paper",
+      "ref": "He, K., Zhang, X., Ren, S., & Sun, J. (2016). Deep residual learning for image recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (pp. 770-778).",
+      "got": "verified",
+      "ok": true,
+      "reason": "Title, first author and year match a database record."
+    },
+    {
+      "expected": "verified",
+      "kind": "real",
+      "ref": "Przybylski, A. K., Murayama, K., DeHaan, C. R., & Gladwell, V. (2013). Motivational, emotional, and behavioral correlates of fear of missing out. Computers in Human Behavior, 29(4), 1841-1848.",
+      "got": "verified",
+      "ok": true,
+      "reason": "Title, first author and year match a database record."
+    },
+    {
+      "expected": "not_found",
+      "kind": "fabricated, real journal",
+      "ref": "Larsen, K., & Mbeki, T. (2020). Doomscrolling and cortisol: A 6-week experience-sampling study of 900 undergraduates. Psychological Science, 31(8), 1002-1015.",
+      "got": "not_found",
+      "ok": true,
+      "reason": "No matching record in Crossref or OpenAlex."
+    },
+    {
+      "expected": "not_found",
+      "kind": "fabricated, real journal",
+      "ref": "Rossi, G. (2017). The attention economy and adolescent identity formation. American Journal of Sociology, 123(2), 455-490.",
+      "got": "not_found",
+      "ok": true,
+      "reason": "No matching record in Crossref or OpenAlex."
+    },
+    {
+      "expected": "not_found",
+      "kind": "fabricated, fake DOI",
+      "ref": "Chen, L., Gupta, A., & Novak, P. (2024). Large language models reduce plagiarism in first-year writing: A field experiment. Nature Human Behaviour, 8, 1201-1212. https://doi.org/10.1038/s41562-024-99999-x",
+      "got": "not_found",
+      "ok": true,
+      "reason": "The DOI 10.1038/s41562-024-99999-x is not registered in Crossref or OpenAlex."
+    },
+    {
+      "expected": "not_found",
+      "kind": "fabricated",
+      "ref": "O'Brien, M. (2016). Mindfulness apps and exam anxiety in medical students: A randomised trial. The BMJ, 352, i1188.",
+      "got": "not_found",
+      "ok": true,
+      "reason": "No matching record in Crossref or OpenAlex."
+    },
+    {
+      "expected": "close_match",
+      "kind": "wrong year (1957 for 1954)",
+      "ref": "Festinger, L. (1957). A theory of social comparison processes. Human Relations, 7(2), 117-140.",
+      "got": "close_match",
+      "ok": true,
+      "reason": "Close match: year differs: your reference has 1957, the record has 1954. Confirm this is the paper you mean."
+    },
+    {
+      "expected": "close_match",
+      "kind": "title partly wrong",
+      "ref": "Bandura, A. (1977). Self-efficacy: A unifying theory of human motivation. Psychological Review, 84(2).",
+      "got": "close_match",
+      "ok": true,
+      "reason": "Close match: only 60% of the record's title words appear in your reference. Confirm this is the paper you mean."
+    },
+    {
+      "expected": "retracted",
+      "kind": "retracted, no DOI",
+      "ref": "Stapel, D. A., & Lindenberg, S. (2011). Coping with chaos: How disordered contexts promote stereotyping and discrimination. Science, 332(6026), 251-253.",
+      "got": "retracted",
+      "ok": true,
+      "reason": "Retracted on 2011-12-02, flagged by Crossref (Retraction Watch data) and OpenAlex. Notice: 10.1126/science.334.6060.1202-a."
+    },
+    {
+      "expected": "retracted",
+      "kind": "retracted, no DOI",
+      "ref": "Schön, J. H., Meng, H., & Bao, Z. (2001). Self-assembled monolayer organic field-effect transistors. Nature, 413, 713-716.",
+      "got": "retracted",
+      "ok": true,
+      "reason": "Retracted on 2003-03-06, flagged by Crossref (Retraction Watch data) and OpenAlex. Notice: 10.1038/nature01464."
+    }
+  ]
+}

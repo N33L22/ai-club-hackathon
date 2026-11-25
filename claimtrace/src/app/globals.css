@@ -1,0 +1,231 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+   ClaimTrace design tokens
+   Ink    : cool near-navy neutrals (from the deck's background)
+   Trace  : emerald-teal brand, the colour of verified evidence
+   Labels : one hue per trust label, always paired with an icon and text
+--------------------------------------------------------------------------- */
+@theme {
+  --color-ink-25: #fbfbfd;
+  --color-ink-50: #f6f7fa;
+  --color-ink-100: #eef0f5;
+  --color-ink-200: #e2e6ee;
+  --color-ink-300: #cbd2de;
+  --color-ink-400: #98a2b6;
+  --color-ink-500: #6b7489;
+  --color-ink-600: #4d566b;
+  --color-ink-700: #3a4256;
+  --color-ink-800: #252c3f;
+  --color-ink-900: #161c2d;
+  --color-ink-950: #0b1020;
+
+  --color-trace-50: #edfdf7;
+  --color-trace-100: #d2f9ea;
+  --color-trace-200: #a8f1d6;
+  --color-trace-300: #6fe3bd;
+  --color-trace-400: #34cc9f;
+  --color-trace-500: #13b086;
+  --color-trace-600: #0a8f6d;
+  --color-trace-700: #0b735a;
+  --color-trace-800: #0e5b49;
+  --color-trace-900: #0d4b3d;
+  --color-trace-950: #042b23;
+
+  --shadow-card: 0 1px 2px rgb(11 16 32 / 0.04), 0 1px 3px rgb(11 16 32 / 0.05);
+  --shadow-lift: 0 10px 30px -12px rgb(11 16 32 / 0.16), 0 2px 6px rgb(11 16 32 / 0.05);
+  --shadow-pop: 0 24px 60px -18px rgb(11 16 32 / 0.25), 0 6px 16px rgb(11 16 32 / 0.06);
+  --shadow-ring: 0 0 0 1px rgb(11 16 32 / 0.06), 0 1px 2px rgb(11 16 32 / 0.04);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #0b1020;
+  --card: #ffffff;
+  --card-foreground: #0b1020;
+  --popover: #ffffff;
+  --popover-foreground: #0b1020;
+  --primary: #0b1020;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f3f7;
+  --secondary-foreground: #161c2d;
+  --muted: #f4f5f8;
+  --muted-foreground: #5f6880;
+  --accent: #f1f3f7;
+  --accent-foreground: #0b1020;
+  --destructive: #e11d48;
+  --border: #e4e7ee;
+  --input: #dde1e9;
+  --ring: #13b086;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: var(--color-trace-200);
+    color: var(--color-ink-950);
+  }
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-trace-500) 60%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* serif display headings */
+  .font-display {
+    font-family: var(--font-serif);
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+  /* skeleton shimmer */
+  .shimmer {
+    background: linear-gradient(90deg, var(--color-ink-100) 0%, var(--color-ink-50) 40%, var(--color-ink-100) 80%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+  /* soft grid backdrop for hero areas */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgb(11 16 32 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(11 16 32 / 0.045) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ---------------------------- Manuscript editor ---------------------------- */
+.manuscript .ProseMirror {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--color-ink-900);
+  outline: none;
+  min-height: 420px;
+}
+.manuscript .ProseMirror p {
+  margin: 0 0 1.05em;
+}
+.manuscript .ProseMirror h2 {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 1.6em 0 0.5em;
+  color: var(--color-ink-950);
+}
+.manuscript .ProseMirror ul,
+.manuscript .ProseMirror ol {
+  padding-left: 1.4em;
+  margin: 0 0 1em;
+}
+.manuscript .ProseMirror ul { list-style: disc; }
+.manuscript .ProseMirror ol { list-style: decimal; }
+.manuscript .ProseMirror blockquote {
+  border-left: 2px solid var(--color-ink-200);
+  padding-left: 1em;
+  color: var(--color-ink-600);
+  font-style: italic;
+}
+.manuscript .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-ink-400);
+}
+
+/* claim underlines, coloured by trust label (decorations from the editor plugin) */
+.claim-mark {
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-skip-ink: none;
+  transition: background-color 160ms ease;
+  border-radius: 2px;
+}
+.claim-mark[data-label="verified"] { text-decoration-color: color-mix(in srgb, #13b086 55%, transparent); }
+.claim-mark[data-label="overreach"],
+.claim-mark[data-label="close_match"] { text-decoration-color: #f59e0b; text-decoration-style: wavy; }
+.claim-mark[data-label="not_supported"] { text-decoration-color: #f97316; text-decoration-style: wavy; }
+.claim-mark[data-label="unchecked"] { text-decoration-color: color-mix(in srgb, #0ea5e9 60%, transparent); text-decoration-style: dashed; }
+.claim-mark[data-label="student_added"] { text-decoration-color: #94a3b8; text-decoration-style: dashed; }
+.claim-mark[data-label="not_found"] { text-decoration-color: #f43f5e; text-decoration-style: wavy; }
+.claim-mark[data-label="retracted"] { text-decoration-color: #9f1239; text-decoration-style: double; }
+.claim-mark[data-label="pending"] { text-decoration-color: var(--color-ink-300); text-decoration-style: dotted; }
+.claim-mark[data-active="true"] { background: color-mix(in srgb, var(--color-trace-100) 70%, transparent); }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
