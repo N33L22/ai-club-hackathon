@@ -482,6 +482,7 @@ These were decided while building and are reflected in the website and the deck.
 | 25 Nov | **Navigation and project controls**: Previous / Next through the steps, Save draft (Ctrl+S), delete a project with a confirmation | Asked for after hands-on testing; additive, no rule or label changed |
 | 26 Nov | **"Couldn't check" renamed "Not yet verified"** (meaning unchanged) | Day-of requirement 1 asks for exactly this label when a live check does not work |
 | 26 Nov | **Labels on search results** ("From OpenAlex · not yet checked") and a tap-to-open **What the labels mean** guide on Search, Library and Review | Day-of requirement 2: every reference shown must carry a label, explained on screen, also on phones |
+| 26 Nov | **Search by title or DOI** next to the Scout's plan: a title is searched in OpenAlex (the exact title is confirmed or the page warns it may not exist), a DOI is checked in Crossref and OpenAlex. No AI | Asked for on the day: students often have one specific reference to find, and it doubles as a live fake-reference check |
 | 26 Nov | **Reference list and AI-use statement can be copied before sign-off**; the final files (draft, BibTeX, RIS) still unlock only after sign-off | Day-of requirements 4 and 5. The copied list ends with a Reference checks note on every unverified reference, so the guardrail's labels travel with it. The deck's export gate (slide 4) still holds for the final files |
 
 ### 🟡 Proposed: needs team confirmation

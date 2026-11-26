@@ -40,15 +40,15 @@ export function ResultCard({
   record,
   selected,
   inLibrary,
-  libraryLabel,
+  knownLabel,
   onToggle,
   index,
 }: {
   record: ScholarlyRecord;
   selected: boolean;
   inLibrary: boolean;
-  /** The label of the saved copy, when this record is already in the library. */
-  libraryLabel?: TrustLabel;
+  /** A label already known for this record: its library copy's, or a DOI check's. */
+  knownLabel?: TrustLabel;
   onToggle: () => void;
   index: number;
 }) {
@@ -83,8 +83,8 @@ export function ResultCard({
               <span className="inline-flex items-center gap-1 rounded-full bg-rose-900 px-2 py-0.5 text-[11px] font-medium text-white">
                 <OctagonX className="size-3" /> Retracted
               </span>
-            ) : libraryLabel ? (
-              <TrustBadge label={libraryLabel} context="source" size="sm" />
+            ) : knownLabel ? (
+              <TrustBadge label={knownLabel} context="source" size="sm" />
             ) : (
               <TrustBadge label="pending" context="source" size="sm" title={SEARCH_RESULT_LABEL.title} meaning={SEARCH_RESULT_LABEL.meaning} />
             )}
