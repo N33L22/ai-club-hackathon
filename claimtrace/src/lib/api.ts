@@ -3,6 +3,7 @@ import type {
   ClaimCheckRequestBody,
   DocumentIdeaRequestBody,
   SearchRequestBody,
+  SuggestRequestBody,
   SummaryRequestBody,
 } from "@/core/api-schemas";
 import type { DocumentIdea } from "@/core/document-idea";
@@ -79,4 +80,6 @@ export const api = {
   verifyBatch: (references: string[]) => call<{ results: BatchItem[] }>("sources/verify-batch", { references }),
   checkClaim: (body: ClaimCheckRequestBody) => call<{ check: ClaimCheck }>("claims/check", body),
   summary: (body: SummaryRequestBody) => call<{ summary: GroundedSummary }>("assistant/summary", body),
+  suggest: (body: SuggestRequestBody) =>
+    call<{ suggestions: Array<{ text: string; sourceId: string }>; mode: "ai" | "offline"; model?: string }>("assistant/suggest", body),
 };

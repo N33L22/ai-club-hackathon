@@ -15,7 +15,7 @@ The main AI prompts we used to plan and build ClaimTrace, in the order we used t
 - **Build the website** (Tue 24 Nov): entry 3
 - **Independent audit, then fixes** (Wed 25 Nov): entries 4 to 6
 - **Polish the deck and the website** (Wed 25 Nov): entries 7 to 11
-- **On the day: the new requirements** (Thu 26 Nov): entries 12 to 16
+- **On the day: the new requirements** (Thu 26 Nov): entries 12 to 17
 
 ## Plan the project and the pitch deck
 
@@ -197,3 +197,11 @@ The main AI prompts we used to plan and build ClaimTrace, in the order we used t
 > In the hackathon everything has the same idea and the working so give me something unique and not a generalised ai slop that everyone is presenting something out of the box and the features which keep us apart from the rest of the crowd and increase our chances of winning
 
 **Response:** Built in parallel, then tested together. A Mismatch label shows what was pasted next to what the DOI points to. Small errors get Accept the fix or Reject the fix. Duplicates are detected and merged (one entry kept; exports list each paper once). Every unverified entry carries its label in exports, and risky references start unticked. An "Ask the assistant" tab answers "Not found" when no real paper covers a request and lists related real papers, each labelled. "Start from a document" reads a PDF, Word or text file and suggests the project's title, research question and area for the student to edit.
+
+### 17. The Assistant suggests what to write
+
+*Thu 26 Nov, 2:49 PM · Claude Code*
+
+> ! more change i want you to give me an agent where in the draft we write the researchers don't always have the content so i want you to help them suggest that this is what they can write in their draft and do it quick this is just for mvp and you have the api key do it in 5-7mins as we are out of time i just have to show that ai can suggest content
+
+**Response:** Added "Suggest what to write" to the draft editor. The Assistant reads only the abstracts of sources in the student's library and suggests sentences that state what those sources say, each naming the source it rests on; code drops any suggestion that does not name one of the student's own sources. Suggestions are labelled "AI suggestion", nothing enters the draft until the student clicks Insert, and an inserted sentence carries its citation and is checked by the Skeptic on Review like every claim.

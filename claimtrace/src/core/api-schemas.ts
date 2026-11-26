@@ -60,7 +60,18 @@ export const DocumentIdeaRequest = z.object({
 });
 
 export type PlanRequestBody = z.input<typeof PlanRequest>;
+/** Assistant: suggest sentences for the draft, each based on one of the student's own library sources. */
+export const SuggestRequest = z.object({
+  question: z.string().trim().max(400).default(""),
+  draft: z.string().max(3000).default(""),
+  sources: z
+    .array(z.object({ id: z.string().min(1).max(80), ref: z.string().max(160), title: z.string().max(400), text: z.string().min(40).max(2500) }))
+    .min(1)
+    .max(6),
+});
+
 export type DocumentIdeaRequestBody = z.input<typeof DocumentIdeaRequest>;
+export type SuggestRequestBody = z.input<typeof SuggestRequest>;
 export type SearchRequestBody = z.input<typeof SearchRequest>;
 export type VerifyRequestBody = z.input<typeof VerifyRequest>;
 export type ClaimCheckRequestBody = z.input<typeof ClaimCheckRequest>;

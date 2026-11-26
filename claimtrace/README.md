@@ -22,6 +22,8 @@ The AI has three narrow roles: the **Scout** plans searches, the **Skeptic** cha
 
 Exports: reference list in APA 7, Harvard, MLA 9, IEEE or Vancouver (with a "Reference checks" section listing every reference that is not plainly verified); BibTeX and RIS; the draft with formatted citations; an auto-generated **AI-use statement**; a printable **integrity report**; the full **audit log** (JSON/CSV); a **project file** to move a project between browsers.
 
+**Suggest what to write:** in the editor, the Assistant suggests sentences built only from the abstracts of sources in your library, each naming its source and labelled "AI suggestion". Nothing enters the draft until you click Insert, and inserted sentences are checked on Review like every claim.
+
 **Start from a document:** drop a PDF, Word or text file into **New project** and ClaimTrace suggests the project's title, research question and area from it (labelled as a suggestion; you edit before creating). The text is read in your browser; only the first few thousand characters go to the AI.
 
 Around the workflow: **Previous / Next** buttons at the bottom of each page follow the steps in order; the draft saves as you type, and **Save draft** (Ctrl+S) saves at once; a project can be edited, exported, imported or deleted (deleting asks first and offers to export a copy).

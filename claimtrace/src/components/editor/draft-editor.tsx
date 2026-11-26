@@ -3,7 +3,7 @@
 import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { AtSign, Bold, Check, Heading2, Italic, List, ListOrdered, Loader2, Quote, Redo2, Save, Undo2 } from "lucide-react";
+import { AtSign, Bold, Check, Heading2, Italic, List, ListOrdered, Loader2, Plus, Quote, Redo2, Save, Sparkles, Undo2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { StatusDot } from "@/components/trust/trust-badge";
@@ -15,6 +15,7 @@ import type { TrustLabel } from "@/core/labels";
 import type { LibrarySource, Project } from "@/core/model";
 import { stripRetractedPrefix } from "@/core/text/normalize";
 import { sourceLabel } from "@/core/workflow/labels";
+import { api, ApiError } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { CitationContext } from "./citation-context";
@@ -68,7 +69,23 @@ function ToolButton({ label, onClick, active, disabled, children }: { label: str
 
 const timeOf = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-function Toolbar({ editor, onCite, onSave, saved, savedAt }: { editor: Editor; onCite: () => void; onSave: () => void; saved: boolean; savedAt: Date | null }) {
+function Toolbar({
+  editor,
+  onCite,
+  onSave,
+  onSuggest,
+  suggesting,
+  saved,
+  savedAt,
+}: {
+  editor: Editor;
+  onCite: () => void;
+  onSave: () => void;
+  onSuggest: () => void;
+  suggesting: boolean;
+  saved: boolean;
+  savedAt: Date | null;
+}) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -120,6 +137,15 @@ function Toolbar({ editor, onCite, onSave, saved, savedAt }: { editor: Editor; o
       >
         <AtSign className="size-3.5" /> Cite a source
       </button>
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onSuggest}
+        disabled={suggesting}
+        className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-[12.5px] font-medium text-violet-900 hover:bg-violet-100 disabled:opacity-60"
+      >
+        {suggesting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />} Suggest what to write
+      </button>
       <span className="ml-auto flex items-center gap-3 text-[12px] text-ink-400">
         <span className="hidden sm:inline">{state.words} words</span>
         <span className="flex items-center gap-1" role="status" aria-live="polite">
@@ -159,6 +185,10 @@ export function DraftEditor({ project, sources, labels, activeKey, focusKey, onO
   const [saved, setSaved] = useState(true);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [citeOpen, setCiteOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ text: string; sourceId: string }> | null>(null);
+  const [suggestNote, setSuggestNote] = useState("");
   const [version, setVersion] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const projectId = project.id;
@@ -251,6 +281,65 @@ export function DraftEditor({ project, sources, labels, activeKey, focusKey, onO
     return m;
   }, [project.doc]);
 
+  /** The Assistant suggests sentences from the abstracts of the student's own sources; the student decides. */
+  async function suggest() {
+    if (!editor) return;
+    const usable = sources
+      .filter((s) => !["not_found", "mismatch", "retracted"].includes(sourceLabel(s.verification)) && (s.record.abstract ?? "").length >= 40)
+      .slice(0, 6);
+    setSuggestOpen(true);
+    setSuggestions(null);
+    if (!usable.length) {
+      setSuggestions([]);
+      setSuggestNote("Add sources with abstracts to your library first: suggestions are written only from your own sources.");
+      return;
+    }
+    setSuggesting(true);
+    setSuggestNote("");
+    try {
+      const res = await api.suggest({
+        question: project.question ?? "",
+        draft: editor.getText().slice(-2500),
+        sources: usable.map((s) => ({ id: s.id, ref: shortRef(s), title: stripRetractedPrefix(s.record.title).slice(0, 380), text: (s.record.abstract ?? "").slice(0, 2400) })),
+      });
+      setSuggestions(res.suggestions);
+      if (res.mode === "offline") setSuggestNote("The AI is offline, so there are no suggestions right now. Your sources and draft are unchanged.");
+      else if (!res.suggestions.length) setSuggestNote("No suggestion could be tied to one of your sources, so none is shown.");
+      useStore.getState().log({
+        projectId,
+        actor: "ai:assistant",
+        action: "draft.suggested",
+        summary: `The Assistant suggested ${res.suggestions.length} sentence${res.suggestions.length === 1 ? "" : "s"} for the draft, each based on a library source${res.model ? ` (${res.model})` : ""}.`,
+      });
+    } catch (e) {
+      setSuggestions([]);
+      setSuggestNote(e instanceof ApiError ? e.message : "Could not reach the Assistant. Please try again.");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  function insertSuggestion(text: string, src: LibrarySource) {
+    const body = text.trim().replace(/[.!?]+$/, "");
+    editor
+      ?.chain()
+      .focus()
+      .insertContent([
+        { type: "text", text: `${body} ` },
+        { type: CITATION_NODE, attrs: { id: src.id, label: shortRef(src) } },
+        { type: "text", text: ". " },
+      ])
+      .run();
+    setSuggestions((all) => (all ?? []).filter((x) => x.text !== text));
+    useStore.getState().log({
+      projectId,
+      actor: "student",
+      action: "draft.suggestion_inserted",
+      summary: `Inserted a suggested sentence citing ${shortRef(src)}. It is checked on Review like every claim.`,
+    });
+    toast.success("Added to your draft", { description: "It is a claim like any other: check it on Review." });
+  }
+
   function insertCitation(src: LibrarySource) {
     editor
       ?.chain()
@@ -266,7 +355,61 @@ export function DraftEditor({ project, sources, labels, activeKey, focusKey, onO
   return (
     <CitationContext.Provider value={{ style: project.style, numbers, onOpenSource }}>
       <div className="manuscript rounded-2xl border border-ink-200/80 bg-white shadow-card">
-        {editor ? <Toolbar editor={editor} onCite={() => setCiteOpen(true)} onSave={saveNow} saved={saved} savedAt={savedAt} /> : <div className="h-12 border-b border-ink-100" />}
+        {editor ? (
+          <Toolbar editor={editor} onCite={() => setCiteOpen(true)} onSave={saveNow} onSuggest={() => void suggest()} suggesting={suggesting} saved={saved} savedAt={savedAt} />
+        ) : (
+          <div className="h-12 border-b border-ink-100" />
+        )}
+        {suggestOpen && (
+          <div className="border-b border-violet-100 bg-violet-50/40 px-4 py-4 md:px-6">
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-violet-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px] font-medium text-violet-950">What you could write next · AI suggestion</p>
+                <p className="text-[12px] leading-relaxed text-violet-900/80">
+                  Written only from the abstracts of sources in your library. Nothing is added until you click Insert, and every inserted sentence is checked against its
+                  source on Review.
+                </p>
+              </div>
+              <button type="button" onClick={() => setSuggestOpen(false)} aria-label="Close suggestions" className="grid size-7 place-items-center rounded-md text-violet-700 hover:bg-violet-100">
+                <X className="size-4" />
+              </button>
+            </div>
+            {suggesting ? (
+              <p className="mt-3 flex items-center gap-2 text-[13px] text-violet-900">
+                <Loader2 className="size-4 animate-spin" /> The Assistant is reading your sources…
+              </p>
+            ) : (
+              <>
+                {suggestNote && <p className="mt-3 text-[13px] text-ink-600">{suggestNote}</p>}
+                <ul className="mt-3 space-y-2">
+                  {(suggestions ?? []).map((s, i) => {
+                    const src = sources.find((x) => x.id === s.sourceId);
+                    if (!src) return null;
+                    return (
+                      <li key={i} className="rounded-xl bg-white p-3 ring-1 ring-violet-200">
+                        <p className="font-serif text-[15px] leading-relaxed text-ink-900">{s.text}</p>
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[12px] text-ink-500">
+                            Based on <span className="font-medium text-ink-700">{shortRef(src)}</span> · AI suggestion, not yet checked
+                          </span>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => insertSuggestion(s.text, src)}
+                            className="inline-flex h-7 items-center gap-1 rounded-lg bg-ink-950 px-2.5 text-[12px] font-medium text-white hover:bg-ink-800"
+                          >
+                            <Plus className="size-3.5" /> Insert
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
         {editor ? <EditorContent editor={editor} /> : <div className="shimmer m-10 h-64 rounded-xl" />}
       </div>
       <CommandDialog open={citeOpen} onOpenChange={setCiteOpen} title="Cite a source" description="Choose a source from your library">
