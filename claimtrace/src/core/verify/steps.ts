@@ -74,11 +74,14 @@ export function buildVerification(
   return {
     status,
     reason: status === "retracted" ? retraction.detail : decision.reason,
-    steps: [exists, matches, retraction],
+    steps: decision.mismatch
+      ? [{ id: "exists", state: "fail", title: "DOI belongs to another paper", detail: decision.reason }, matches, retraction]
+      : [exists, matches, retraction],
     matched: decision.status === "not_found" ? undefined : record,
     scores: decision.scores,
     checkedAt,
     unavailable: failed,
+    ...(decision.mismatch ? { mismatch: true } : {}),
   };
 }
 

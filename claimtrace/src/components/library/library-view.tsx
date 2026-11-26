@@ -26,7 +26,7 @@ import { SourceSheet } from "./source-sheet";
 type FolderFilter = "all" | "unfiled" | string;
 
 /** Reference labels in reading order for the "What the labels mean" guide. */
-const GUIDE_LABELS: TrustLabel[] = ["verified", "close_match", "unavailable", "student_added", "not_found", "retracted", "pending"];
+const GUIDE_LABELS: TrustLabel[] = ["verified", "close_match", "mismatch", "unavailable", "student_added", "not_found", "retracted", "pending"];
 
 function SourceRow({ src, onOpen, index }: { src: LibrarySource; onOpen: () => void; index: number }) {
   const label = sourceLabel(src.verification);

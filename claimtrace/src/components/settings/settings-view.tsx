@@ -39,7 +39,7 @@ const LIMITATIONS = [
   ["Fuzzy matching is not perfect", "Thresholds are tuned on a test set (below). Near-misses become Close match so you can compare and confirm."],
 ];
 
-const ORDER: TrustLabel[] = ["supported", "supported_own_text", "overreach", "not_supported", "unchecked", "ai_reasoning", "verified", "close_match", "not_found", "retracted", "unavailable", "student_added"];
+const ORDER: TrustLabel[] = ["supported", "supported_own_text", "overreach", "not_supported", "unchecked", "ai_reasoning", "verified", "close_match", "mismatch", "not_found", "retracted", "unavailable", "student_added"];
 
 type EvalSummary = {
   ranAt?: string;

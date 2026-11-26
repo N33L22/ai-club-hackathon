@@ -15,7 +15,7 @@ The main AI prompts we used to plan and build ClaimTrace, in the order we used t
 - **Build the website** (Tue 24 Nov): entry 3
 - **Independent audit, then fixes** (Wed 25 Nov): entries 4 to 6
 - **Polish the deck and the website** (Wed 25 Nov): entries 7 to 11
-- **On the day: the new requirements** (Thu 26 Nov): entries 12 to 14
+- **On the day: the new requirements** (Thu 26 Nov): entries 12 to 16
 
 ## Plan the project and the pitch deck
 
@@ -177,3 +177,23 @@ The main AI prompts we used to plan and build ClaimTrace, in the order we used t
 *The rest of this message asked us to shorten this prompt log.*
 
 **Response:** Added a "By title or DOI" tab to Search, with no AI involved. A title is searched in OpenAlex; the paper with that exact title is confirmed and listed first, and if no paper has it, the page warns that the reference may not exist. A DOI is checked in Crossref and OpenAlex, so a made-up DOI shows "Not found". Results carry labels and are saved only with Approve and save.
+
+### 15. Audit against the organisers' Phase 2 brief
+
+*Thu 26 Nov, 1:36 PM · Claude Code*
+
+> @"claimtrace/Phase 2.pdf" 
+> Assume you are a professional auditor audit the project and then compare it with the given pdf and check what is missing from the document in the project additionally, do not make any changes now just list them out based on my approval you will start building you have 10mins for that start now
+
+**Response:** Ran the organisers' test pack of eight references through the live app without changing anything. The invented reference ("Not found", saying where it looked), the retracted paper, the correct references and the paper without a DOI already worked. Gaps found: the wrong year showed as a close match with no way to reject the fix; a real DOI on other authors showed as a close match instead of a mismatch; the duplicate would have been saved twice; and there was nowhere to type a request to the assistant. Proposed seven fixes for approval.
+
+### 16. Phase 2 fixes, and start a project from a document
+
+*Thu 26 Nov, 2:10 PM · Claude Code*
+
+> Perform the above changes accordingly , additionally
+> 1. with the option of adding a manual title we also have an option of where the user uploads a certain document maybe pdf,word or txt where it searches the pdf and on that basis it provides us with the title and the question or area of research 
+> do that quickly we have only 20mins and it should be a bit more user friendly 
+> In the hackathon everything has the same idea and the working so give me something unique and not a generalised ai slop that everyone is presenting something out of the box and the features which keep us apart from the rest of the crowd and increase our chances of winning
+
+**Response:** Built in parallel, then tested together. A Mismatch label shows what was pasted next to what the DOI points to. Small errors get Accept the fix or Reject the fix. Duplicates are detected and merged (one entry kept; exports list each paper once). Every unverified entry carries its label in exports, and risky references start unticked. An "Ask the assistant" tab answers "Not found" when no real paper covers a request and lists related real papers, each labelled. "Start from a document" reads a PDF, Word or text file and suggests the project's title, research question and area for the student to edit.

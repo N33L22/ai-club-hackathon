@@ -51,7 +51,16 @@ export const SummaryRequest = z.object({
   textChars: z.number().int().min(0).max(5_000_000).optional(),
 });
 
+/** "Start from a document": the opening text of a file the student chose (read in the browser). */
+export const DocumentIdeaRequest = z.object({
+  fileName: z.string().trim().max(200).default(""),
+  /** The title stored in the file's own metadata, when it has one. */
+  metaTitle: z.string().trim().max(300).optional(),
+  text: z.string().trim().min(40, "The document has too little readable text.").max(8000),
+});
+
 export type PlanRequestBody = z.input<typeof PlanRequest>;
+export type DocumentIdeaRequestBody = z.input<typeof DocumentIdeaRequest>;
 export type SearchRequestBody = z.input<typeof SearchRequest>;
 export type VerifyRequestBody = z.input<typeof VerifyRequest>;
 export type ClaimCheckRequestBody = z.input<typeof ClaimCheckRequest>;

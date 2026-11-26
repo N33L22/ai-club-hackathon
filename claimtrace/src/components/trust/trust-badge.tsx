@@ -14,6 +14,7 @@ import {
   SearchX,
   Sparkles,
   TriangleAlert,
+  Unlink,
   type LucideIcon,
 } from "lucide-react";
 import { LABELS, labelMeaning, type LabelTone, type TrustLabel } from "@/core/labels";
@@ -30,6 +31,7 @@ export const LABEL_ICONS: Record<TrustLabel, LucideIcon> = {
   unchecked: CircleDashed,
   ai_reasoning: Sparkles,
   not_found: SearchX,
+  mismatch: Unlink,
   retracted: OctagonX,
   close_match: CircleHelp,
   student_added: PenLine,

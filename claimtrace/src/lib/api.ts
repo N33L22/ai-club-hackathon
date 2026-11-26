@@ -1,9 +1,11 @@
 /** Typed browser client for the ClaimTrace API. */
 import type {
   ClaimCheckRequestBody,
+  DocumentIdeaRequestBody,
   SearchRequestBody,
   SummaryRequestBody,
 } from "@/core/api-schemas";
+import type { DocumentIdea } from "@/core/document-idea";
 import type {
   ClaimCheck,
   GroundedSummary,
@@ -71,6 +73,7 @@ export interface HealthResponse {
 export const api = {
   health: () => call<HealthResponse>("health"),
   plan: (question: string) => call<{ plan: SearchPlan }>("scout/plan", { question }),
+  documentIdea: (body: DocumentIdeaRequestBody) => call<{ idea: DocumentIdea }>("scout/from-document", body),
   search: (body: SearchRequestBody, signal?: AbortSignal) => call<{ results: ScholarlyRecord[] }>("sources/search", body, signal),
   verify: (reference: ReferenceInput) => call<VerifyResponse>("sources/verify", { reference }),
   verifyBatch: (references: string[]) => call<{ results: BatchItem[] }>("sources/verify-batch", { references }),

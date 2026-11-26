@@ -3,6 +3,7 @@
 import { shortRef } from "@/core/citation/csl";
 import { LABELS } from "@/core/labels";
 import type { AuditEvent, LibrarySource, Project } from "@/core/model";
+import { recordKey } from "@/core/records";
 import { sourceLabel } from "@/core/workflow/labels";
 import type { StatementInput } from "@/core/workflow/statement";
 import type { ResolvedClaim } from "./hooks";
@@ -109,5 +110,13 @@ export function orderedSources(sources: LibrarySource[], claims: ResolvedClaim[]
   for (const c of claims) for (const id of c.sourceIds) if (!order.includes(id)) order.push(id);
   const byId = new Map(sources.map((s) => [s.id, s]));
   const cited = order.map((id) => byId.get(id)).filter((s): s is LibrarySource => Boolean(s));
-  return includeUncited ? [...cited, ...sources.filter((s) => !order.includes(s.id))] : cited;
+  const list = includeUncited ? [...cited, ...sources.filter((s) => !order.includes(s.id))] : cited;
+  // one entry per paper: if the same paper is in the library twice, it is still listed once
+  const seen = new Set<string>();
+  return list.filter((s) => {
+    const key = recordKey(s.record);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

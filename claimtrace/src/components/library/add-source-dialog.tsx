@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, FileUp, Globe, Link2, ListChecks, Loader2, Plus } from "lucide-react";
+import { Check, FileUp, GitMerge, Globe, Link2, ListChecks, Loader2, Plus } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { TrustBadge } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { LIMITS } from "@/core/config";
+import type { TrustLabel } from "@/core/labels";
+import { recordKey } from "@/core/records";
 import { stripRetractedPrefix } from "@/core/text/normalize";
 import type { ReferenceInput } from "@/core/types";
 import { splitReferenceList } from "@/core/verify/reference-text";
@@ -20,29 +22,67 @@ import { sourceLabel } from "@/core/workflow/labels";
 import { addEnteredReference, addWebSource, runPool, verifyReferenceList } from "@/lib/actions";
 import { api, ApiError, type BatchItem } from "@/lib/api";
 import { parseImport } from "@/lib/citation";
+import { useProjectSources } from "@/lib/hooks";
+import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import { authorLine } from "../search/result-card";
 
 interface Checked extends BatchItem {
   include: boolean;
+  /** The student merged this duplicate into the entry that is kept. */
+  merged?: boolean;
 }
 
-/** Tick only references that resolved to a record; "Not found" and "Not yet verified" stay unticked. */
-const usable = (it: Pick<BatchItem, "verification">) => Boolean(it.verification && ["verified", "close_match", "retracted"].includes(it.verification.status));
+/** Tick only references that resolved to the paper they cite; Not found, Mismatch, Retracted and Not yet verified start unticked. */
+const usable = (it: Pick<BatchItem, "verification">) => Boolean(it.verification && ["verified", "close_match"].includes(it.verification.status));
+
+/** Which paper an item is: the record's paper when the reference resolved to it; otherwise only the very same text matches. */
+function itemKey(it: BatchItem): string {
+  const status = it.verification?.status ?? "";
+  if (it.record && ["verified", "close_match", "retracted"].includes(status)) return recordKey(it.record);
+  return recordKey({ title: it.parsed?.title ?? it.parsed?.raw ?? it.raw });
+}
+
+interface Dup {
+  /** Index of the earlier reference in the list that is the same paper. */
+  of?: number;
+  /** The same paper is already in this project's library. */
+  inLibrary: boolean;
+}
+
+/** Duplicates inside the list (later copies point to the first one) and against the library. */
+function findDuplicates(items: (BatchItem | undefined)[], libraryKeys: Set<string>): Dup[] {
+  const first = new Map<string, number>();
+  return items.map((it, i) => {
+    if (!it) return { inLibrary: false };
+    const key = itemKey(it);
+    if (libraryKeys.has(key)) return { inLibrary: true };
+    const f = first.get(key);
+    if (f !== undefined) return { of: f, inLibrary: false };
+    first.set(key, i);
+    return { inLibrary: false };
+  });
+}
+const blocked = (d: Dup | undefined) => Boolean(d && (d.of !== undefined || d.inLibrary));
 
 function ResultsTable({
   items,
+  dups,
   setItems,
+  onMerge,
   onAdd,
   adding,
   progress,
 }: {
   items: Checked[];
+  dups: Dup[];
   setItems: (f: (x: Checked[]) => Checked[]) => void;
+  onMerge: (index: number) => void;
   onAdd: () => void;
   adding: boolean;
   progress: { done: number; total: number } | null;
 }) {
-  const chosen = items.filter((i) => i.include).length;
+  const chosen = items.filter((it, i) => it.include && !blocked(dups[i])).length;
   return (
     <div className="mt-4">
       {progress && (
@@ -53,31 +93,92 @@ function ResultsTable({
       )}
       <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
         {items.map((it, i) => {
-          const label = it.verification ? sourceLabel(it.verification) : "not_found";
+          const label: TrustLabel = it.verification ? sourceLabel(it.verification) : "pending";
+          const isMismatch = (label as string) === "mismatch";
+          const dup = dups[i];
+          const isDup = blocked(dup);
+          const of = dup?.of !== undefined ? dup.of + 1 : 0;
           return (
             <motion.label
               key={i}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
-              className="flex cursor-pointer gap-3 rounded-xl border border-ink-200 bg-white p-3 shadow-card hover:border-ink-300"
+              className={cn(
+                "flex gap-3 rounded-xl border bg-white p-3 shadow-card",
+                isDup ? "border-dashed border-amber-300" : "cursor-pointer border-ink-200 hover:border-ink-300",
+              )}
             >
               <Checkbox
                 className="mt-0.5"
-                checked={it.include}
+                checked={it.include && !isDup}
+                disabled={isDup}
+                aria-label={`Add reference ${i + 1}`}
                 onCheckedChange={(v) => setItems((all) => all.map((x, j) => (j === i ? { ...x, include: Boolean(v) } : x)))}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[11px] text-ink-400">{i + 1}</span>
                   <TrustBadge label={it.error ? "pending" : label} context="source" size="sm" />
                   {it.error && <span className="text-[12px] text-rose-700">{it.error}</span>}
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-[13px] text-ink-700">{it.raw}</p>
-                {it.verification && <p className="mt-1 text-[12px] leading-relaxed text-ink-500">{it.verification.reason}</p>}
-                {it.record && label !== "not_found" && (
+                {isMismatch ? (
+                  // what the student pasted next to what the DOI really points to
+                  <div className="mt-2 grid gap-2 text-[12px] sm:grid-cols-2">
+                    <div className="rounded-lg bg-ink-50 p-2.5 ring-1 ring-ink-200 ring-inset">
+                      <p className="font-medium text-ink-800">You pasted</p>
+                      <p className="mt-0.5 text-ink-600 wrap-anywhere">{it.raw}</p>
+                    </div>
+                    <div className="rounded-lg bg-orange-50 p-2.5 ring-1 ring-orange-200 ring-inset">
+                      <p className="font-medium text-orange-900">The DOI points to</p>
+                      <p className="mt-0.5 text-orange-950 wrap-anywhere">
+                        {it.record ? (
+                          <>
+                            <span className="font-serif text-[13px]">{stripRetractedPrefix(it.record.title)}</span> ({authorLine(it.record, 2)}, {it.record.year})
+                          </>
+                        ) : (
+                          // the checker names the DOI's real paper in its reason
+                          (it.verification?.reason ?? "").replace(/^Mismatch: the DOI exists but belongs to a different paper, /, "").replace(/\.$/, "")
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1.5 line-clamp-2 text-[13px] text-ink-700">{it.raw}</p>
+                )}
+                {it.verification && !isMismatch && <p className="mt-1 text-[12px] leading-relaxed text-ink-500">{it.verification.reason}</p>}
+                {isMismatch && <p className="mt-1 text-[12px] leading-relaxed text-ink-500">The DOI exists but belongs to a different paper. ClaimTrace will not pass it because the DOI exists, and will not swap it for that paper.</p>}
+                {it.record && label !== "not_found" && !isMismatch && (
                   <p className="mt-1 text-[12px] text-ink-500">
                     Matched: <span className="font-serif text-[13px] text-ink-800">{stripRetractedPrefix(it.record.title)}</span> ({authorLine(it.record, 2)}, {it.record.year})
                   </p>
+                )}
+                {isDup && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-2.5 py-2 text-[12px] text-amber-950 ring-1 ring-amber-200 ring-inset">
+                    <GitMerge className="size-3.5 shrink-0 text-amber-700" aria-hidden="true" />
+                    {it.merged ? (
+                      <span className="font-medium">
+                        {dup?.inLibrary ? "Merged with the entry already in your library: no second copy." : `Merged into reference ${of}: one entry kept.`}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="min-w-0 flex-1">
+                          {dup?.inLibrary ? "Already in your library: the same paper." : `Duplicate of reference ${of}: the same paper in another format.`} It is never added twice.
+                        </span>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onMerge(i);
+                          }}
+                        >
+                          <GitMerge /> {dup?.inLibrary ? "Merge with library entry" : `Merge into ${of}`}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </motion.label>
@@ -86,7 +187,7 @@ function ResultsTable({
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         <p className="text-[12.5px] text-ink-500">
-          References that were not found, or not yet verified because a database did not answer, stay unticked. You can still add them; they keep their label.
+          Not found, Mismatch, Retracted and Not yet verified references start unticked. You can still add them; they keep their label. A paper is never added twice.
         </p>
         <Button onClick={onAdd} disabled={!chosen || adding}>
           {adding ? <Loader2 className="animate-spin" /> : <Check />} Add {chosen}
@@ -104,6 +205,11 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [web, setWeb] = useState({ title: "", author: "", year: "", url: "", site: "", accessed: new Date().toISOString().slice(0, 10) });
+  const library = useProjectSources(projectId);
+  // a library entry matches by its record, or by the exact text a not-found reference was saved with
+  const libraryKeys = useMemo(() => new Set(library.flatMap((s) => [recordKey(s.record), recordKey({ title: s.record.title })])), [library]);
+  const dups = useMemo(() => findDuplicates(items, libraryKeys), [items, libraryKeys]);
+  const doiInLibrary = doiResult?.record ? libraryKeys.has(recordKey(doiResult.record)) : false;
 
   const reset = () => {
     setDoi("");
@@ -140,7 +246,12 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
     try {
       // a few references per request: results appear as they are ready
       await verifyReferenceList(refs, (results, done) => {
-        setItems((prev) => results.map((r, i) => ({ ...r, include: prev[i]?.raw === r.raw ? prev[i].include : usable(r) })));
+        setItems((prev) =>
+          results.map((r, i) => {
+            const same = prev[i]?.raw === r.raw;
+            return { ...r, include: same ? prev[i].include : usable(r), merged: same ? prev[i].merged : undefined };
+          }),
+        );
         setProgress({ done, total: refs.length });
       });
     } catch (e) {
@@ -178,15 +289,36 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
     }
   }
 
+  /** The student confirms a duplicate is the same paper: it is merged into the entry that is kept, never added twice. */
+  function merge(i: number) {
+    const it = items[i];
+    const dup = dups[i];
+    if (!it || !blocked(dup)) return;
+    setItems((all) => all.map((x, j) => (j === i ? { ...x, merged: true, include: false } : x)));
+    const what = (it.record ? stripRetractedPrefix(it.record.title) : it.raw).slice(0, 90);
+    useStore.getState().log({
+      projectId,
+      actor: "student",
+      action: "source.merged",
+      summary: dup?.inLibrary
+        ? `Merged a duplicate of "${what}" into the entry already in the library; no second copy added.`
+        : `Merged reference ${i + 1} into reference ${(dup?.of ?? 0) + 1} ("${what}"); one entry kept.`,
+    });
+  }
+
   function addChecked() {
-    const chosen = items.filter((i) => i.include && i.verification);
+    const chosen = items.filter((it, i) => it.include && it.verification && !blocked(dups[i]));
     for (const it of chosen) {
       // pasted references keep their original text (re-checks compare the same string);
       // file imports keep their structured fields
       const entered: ReferenceInput = it.parsed?.raw ? { raw: it.parsed.raw, doi: it.parsed.doi } : (it.parsed ?? { raw: it.raw });
       addEnteredReference(projectId, entered, it.record, it.verification, folderId);
     }
-    toast.success(`Added ${chosen.length} reference${chosen.length === 1 ? "" : "s"} to the library`);
+    const merged = items.filter((x) => x.merged).length;
+    toast.success(
+      `Added ${chosen.length} reference${chosen.length === 1 ? "" : "s"} to the library`,
+      merged ? { description: `${merged} duplicate${merged === 1 ? "" : "s"} merged: one entry kept for each paper.` } : undefined,
+    );
     close();
   }
 
@@ -240,17 +372,22 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
                 ) : (
                   <p className="mt-2 text-[13px] text-ink-600">{doiResult.verification.reason}</p>
                 )}
+                {doiInLibrary && (
+                  <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-amber-800">
+                    <GitMerge className="size-3.5" aria-hidden="true" /> This paper is already in your library, so it is not added twice.
+                  </p>
+                )}
                 <div className="mt-3 flex justify-end">
                   <Button
                     size="sm"
-                    disabled={!doiResult.record}
+                    disabled={!doiResult.record || doiInLibrary}
                     onClick={() => {
                       addEnteredReference(projectId, { doi: doiResult.record?.doi }, doiResult.record, doiResult.verification, folderId);
                       toast.success("Added to the library");
                       close();
                     }}
                   >
-                    <Plus /> Add to library
+                    <Plus /> {doiInLibrary ? "Already in your library" : "Add to library"}
                   </Button>
                 </div>
               </div>
@@ -275,7 +412,7 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
                 </div>
               </>
             ) : (
-              <ResultsTable items={items} setItems={setItems} onAdd={addChecked} adding={busy} progress={progress} />
+              <ResultsTable items={items} dups={dups} setItems={setItems} onMerge={merge} onAdd={addChecked} adding={busy} progress={progress} />
             )}
           </TabsContent>
 
@@ -288,7 +425,7 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
                 <input type="file" accept=".bib,.ris,.txt" className="sr-only" disabled={busy} onChange={(e) => e.target.files?.[0] && void importFile(e.target.files[0])} />
               </label>
             ) : (
-              <ResultsTable items={items} setItems={setItems} onAdd={addChecked} adding={busy} progress={progress} />
+              <ResultsTable items={items} dups={dups} setItems={setItems} onMerge={merge} onAdd={addChecked} adding={busy} progress={progress} />
             )}
           </TabsContent>
 

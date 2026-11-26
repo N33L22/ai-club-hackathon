@@ -18,6 +18,7 @@ export type TrustLabel =
   | "unchecked"
   | "ai_reasoning"
   | "not_found"
+  | "mismatch"
   | "retracted"
   | "close_match"
   | "student_added"
@@ -106,6 +107,14 @@ export const LABELS: Record<TrustLabel, LabelSpec> = {
     tone: "rose",
     gate: "decide",
   },
+  mismatch: {
+    title: "Mismatch",
+    claim: "The cited reference's DOI belongs to a different paper, so the claim cannot be traced to the source you named.",
+    source:
+      "The DOI exists, but it belongs to a different paper (another title, or none of your authors). Compare what you pasted with what the DOI points to, then fix or remove the reference. It is never passed just because the DOI exists.",
+    tone: "rose",
+    gate: "decide",
+  },
   retracted: {
     title: "Retracted",
     claim: "The cited paper has been retracted, so it should not be used as evidence.",
@@ -154,6 +163,7 @@ export function labelMeaning(label: TrustLabel, context: "claim" | "source"): st
 export const CLAIM_LABEL_ORDER: TrustLabel[] = [
   "retracted",
   "not_found",
+  "mismatch",
   "not_supported",
   "overreach",
   "close_match",
@@ -168,6 +178,7 @@ export const CLAIM_LABEL_ORDER: TrustLabel[] = [
 export const SOURCE_LABEL_ORDER: TrustLabel[] = [
   "retracted",
   "not_found",
+  "mismatch",
   "close_match",
   "unavailable",
   "student_added",

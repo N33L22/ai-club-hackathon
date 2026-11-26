@@ -15,6 +15,15 @@ export interface MatchDecision {
   differences: string[];
   reason: string;
   score: number; // for ranking candidates
+  /** The DOI resolves, but to a different paper: never passed because the DOI exists. */
+  mismatch?: boolean;
+}
+
+/** "Title" by Smith, Jones et al. (2017): what a DOI really points to. */
+function describe(record: ScholarlyRecord): string {
+  const names = record.authors.slice(0, 3).map((a) => a.family);
+  const who = names.length ? ` by ${names.join(", ")}${record.authors.length > 3 ? " et al." : ""}` : "";
+  return `"${record.title}"${who}${record.year ? ` (${record.year})` : ""}`;
 }
 
 function yearMatches(a: number | undefined, b: number | undefined): boolean | null {
@@ -56,6 +65,11 @@ export function decideStructured(input: ReferenceInput, record: ScholarlyRecord,
 
   const scores: MatchScores = { title, author: author.ok, year };
   const score = (title ?? (matchedByDoi ? 1 : 0)) * 0.7 + (author.ok ? 0.15 : 0) + (year ? 0.15 : 0) - (isNoticeTitle(record.title) ? 0.3 : 0);
+
+  // Real DOI, wrong paper: the title is different, or none of the reference's authors wrote it.
+  if (matchedByDoi && ((title !== undefined && title < THRESHOLDS.titleDifferentPaper) || (author.ok === false && !author.inRecord))) {
+    return { status: "not_found", mismatch: true, scores, differences, score, reason: `Mismatch: the DOI exists but belongs to a different paper, ${describe(record)}.` };
+  }
 
   // A DOI with no title to compare is matched by the DOI itself.
   if (title === undefined) {
@@ -136,8 +150,12 @@ export function decideFreeText(rawText: string, record: ScholarlyRecord, matched
   const scores: MatchScores = { title: coverage, author, year };
   const score = coverage * 0.7 + (author ? 0.15 : 0) + (year ? 0.15 : 0) - (isNoticeTitle(record.title) ? 0.3 : 0);
 
-  if (matchedByDoi && coverage < THRESHOLDS.titleDifferentPaper) {
-    return { status: "not_found", scores, differences, score, reason: `The DOI exists but belongs to a different paper: "${record.title}".` };
+  // Real DOI, wrong paper: a different title, or none of the record's authors appear in the reference.
+  // (only when the reference names authors at all: "Smith, J." or "SMITH J" or "et al.")
+  const namesAuthors = /\p{Lu}[\p{L}'’-]+,\s*\p{Lu}\./u.test(rawText) || /\b\p{Lu}{2,}\s\p{Lu}{1,2}\b/u.test(rawText) || /\bet al\b/i.test(rawText);
+  const anyAuthor = record.authors.slice(0, 10).some((a) => surnameIn(a.family, raw));
+  if (matchedByDoi && (coverage < THRESHOLDS.titleDifferentPaper || (namesAuthors && record.authors.length > 0 && !anyAuthor))) {
+    return { status: "not_found", mismatch: true, scores, differences, score, reason: `Mismatch: the DOI exists but belongs to a different paper, ${describe(record)}.` };
   }
   if (coverage >= THRESHOLDS.freeTextVerified && author === true && year !== false) {
     return { status: "verified", scores, differences, score, reason: matchedByDoi ? "Matched by DOI; title, author and year agree." : "Title, first author and year match a database record." };

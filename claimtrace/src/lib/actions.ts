@@ -140,6 +140,12 @@ export function addEnteredReference(projectId: string, entered: ReferenceInput, 
     doi: entered.doi,
     foundIn: [],
   };
+  // never two entries for one paper: the entry already in the library is kept. A reference counts as its
+  // record's paper only when it resolved to it; otherwise only the very same text is a duplicate.
+  const status: string = verification?.status ?? "";
+  const key = record && ["verified", "close_match", "retracted"].includes(status) ? recordKey(record) : recordKey({ title: rec.title });
+  const existing = Object.values(S().sources).find((s) => s.projectId === projectId && (recordKey(s.record) === key || recordKey({ title: s.record.title }) === key));
+  if (existing) return existing.id;
   const id = S().addSource({ projectId, origin: "database", record: rec, entered, verification, folderId, approvedAt: new Date().toISOString() });
   S().log({
     projectId,

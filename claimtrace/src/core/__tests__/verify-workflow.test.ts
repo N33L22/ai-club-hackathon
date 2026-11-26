@@ -61,8 +61,19 @@ describe("verifier: structured references", () => {
   it("accepts a near-identical title without authors as a close match only with the year", () => {
     expect(decideStructured({ title: KELLY.title.replace("Findings From", "Findings from a"), year: 2015 }, KELLY, false).status).toBe("close_match");
   });
-  it("lets a DOI carry a close match whatever the authors", () => {
-    expect(decideStructured({ doi: KELLY.doi, title: fakeTitle, authors: [{ family: "Thompson" }] }, KELLY, true).status).toBe("close_match");
+  // Phase 2 case 2: a real DOI on other authors is a Mismatch, never passed because the DOI exists
+  it("labels a real DOI with none of the reference's authors a mismatch", () => {
+    const d = decideStructured({ doi: KELLY.doi, title: fakeTitle, authors: [{ family: "Thompson" }] }, KELLY, true);
+    expect(d.status).toBe("not_found");
+    expect(d.mismatch).toBe(true);
+    expect(d.reason).toContain("belongs to a different paper");
+  });
+  it("labels a pasted reference whose DOI belongs to other authors a mismatch", () => {
+    const raw = `Hinton, G., & Bengio, Y. (2018). ${KELLY.title}. https://doi.org/${KELLY.doi}`;
+    expect(decideFreeText(raw, KELLY, true).mismatch).toBe(true);
+  });
+  it("does not call a reference without author names a mismatch", () => {
+    expect(decideFreeText(`${KELLY.title}. ${KELLY.year}. https://doi.org/${KELLY.doi}`, KELLY, true).mismatch).toBeUndefined();
   });
 });
 

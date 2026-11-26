@@ -25,6 +25,7 @@ import { recordKey } from "@/core/records";
 import { extractDoi } from "@/core/text/normalize";
 import { titleSimilarity } from "@/core/text/similarity";
 import type { ScholarlyRecord, SearchPlan } from "@/core/types";
+import { requestCoverage } from "@/core/workflow/coverage";
 import { sourceLabel } from "@/core/workflow/labels";
 import { approvePlan, generatePlan, saveRecords } from "@/lib/actions";
 import { api, ApiError } from "@/lib/api";
@@ -185,10 +186,13 @@ function SearchInner({ project }: { project: Project }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [folderId, setFolderId] = useState<string>("none");
   const [onlyOpen, setOnlyOpen] = useState(false);
-  const [mode, setMode] = useState<"question" | "name">("question");
+  const [mode, setMode] = useState<"question" | "ask" | "name">("question");
   const [name, setName] = useState("");
+  const [ask, setAsk] = useState("");
+  // the assistant's answer to a request: did any real paper cover it (checked by code)?
+  const [answer, setAnswer] = useState<{ covering: string[]; terms: string[]; subject: string; queries: string[]; byAi: boolean } | null>(null);
   // where the shown results came from, and what a DOI lookup found
-  const [resultsFrom, setResultsFrom] = useState<"plan" | "title" | "doi">("plan");
+  const [resultsFrom, setResultsFrom] = useState<"plan" | "title" | "doi" | "ask">("plan");
   const [lookup, setLookup] = useState<{ label: TrustLabel; reason: string } | null>(null);
   const [checkedLabels, setCheckedLabels] = useState<Map<string, TrustLabel>>(new Map());
   // title search: does a result have the title the student typed (same rule as the Verifier)?
@@ -221,7 +225,7 @@ function SearchInner({ project }: { project: Project }) {
   }, [forClaim]);
 
   /** Clears the last results and returns a signal that a newer search aborts. */
-  function startSearch(from: "plan" | "title" | "doi") {
+  function startSearch(from: "plan" | "title" | "doi" | "ask") {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -232,6 +236,7 @@ function SearchInner({ project }: { project: Project }) {
     setLookup(null);
     setCheckedLabels(new Map());
     setTitleMatch(null);
+    setAnswer(null);
     setResultsFrom(from);
     return ctrl.signal;
   }
@@ -291,7 +296,67 @@ function SearchInner({ project }: { project: Project }) {
     }
   }
 
+  /**
+   * A free request to the assistant ("give me three studies on ..."). The Scout turns it into a search
+   * (code does it when the AI is offline), OpenAlex returns only real papers, and code then checks
+   * whether any of them is actually about what was asked. If none is, the answer is "Not found": the
+   * assistant never invents a source. Related papers are shown as reading, each with its label.
+   */
+  async function askAssistant() {
+    const request = ask.trim();
+    const signal = startSearch("ask");
+    try {
+      const p = await generatePlan(project.id, request);
+      if (signal.aborted) return;
+      const { results } = await api.search({ queries: p.queries, includeReviews: true, onlyWithAbstract: false }, signal);
+      const cov = requestCoverage(request, results);
+      const covering = new Set(cov.covering.map(keyOf));
+      // papers that cover the request come first, related reading after them
+      setResults([...cov.covering, ...results.filter((r) => !covering.has(keyOf(r)))]);
+      setAnswer({ covering: [...covering], terms: cov.terms, subject: cov.subject, queries: p.queries, byAi: p.mode === "ai" });
+      const log = useStore.getState().log;
+      log({ projectId: project.id, actor: "student", action: "assistant.request", summary: `Asked the assistant: "${request.slice(0, 160)}"` });
+      log({
+        projectId: project.id,
+        actor: "system",
+        action: "assistant.answer",
+        summary: cov.covering.length
+          ? `Found ${cov.covering.length} real paper${cov.covering.length === 1 ? "" : "s"} that cover the request (checked by code); ${results.length - cov.covering.length} more shown as related reading. Nothing saved.`
+          : `Not found: no OpenAlex paper covers ${cov.subject}. Showed ${results.length} related real papers, none saved; no source was invented.`,
+        meta: { queries: p.queries.join(" | "), terms: cov.terms.join(" | ") },
+      });
+    } catch (e) {
+      searchFailed(e);
+    } finally {
+      setSearching(false);
+    }
+  }
+
   const shown = useMemo(() => (results ?? []).filter((r) => !onlyOpen || r.isOa), [results, onlyOpen]);
+  // in an answer, the papers that cover the request, then the related ones
+  const coveringKeys = useMemo(() => new Set(answer?.covering ?? []), [answer]);
+  const isAnswer = resultsFrom === "ask" && answer !== null;
+  const coveringShown = isAnswer ? shown.filter((r) => coveringKeys.has(keyOf(r))) : shown;
+  const relatedShown = isAnswer ? shown.filter((r) => !coveringKeys.has(keyOf(r))) : [];
+
+  const card = (r: ScholarlyRecord, i: number) => (
+    <ResultCard
+      key={keyOf(r)}
+      record={r}
+      index={i}
+      inLibrary={inLibrary.has(keyOf(r))}
+      knownLabel={libraryLabels.get(keyOf(r)) ?? checkedLabels.get(keyOf(r))}
+      selected={selected.has(keyOf(r))}
+      onToggle={() =>
+        setSelected((s) => {
+          const n = new Set(s);
+          if (n.has(keyOf(r))) n.delete(keyOf(r));
+          else n.add(keyOf(r));
+          return n;
+        })
+      }
+    />
+  );
 
   function save() {
     const recs = (results ?? []).filter((r) => selected.has(keyOf(r)));
@@ -319,13 +384,23 @@ function SearchInner({ project }: { project: Project }) {
       />
 
       <Panel className="p-5">
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "question" | "name")}>
-          <TabsList className="mb-4">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "question" | "ask" | "name")}>
+          {/* short names on phones so the three tabs fit; they wrap if a screen is narrower still */}
+          <TabsList className="mb-4 max-w-full flex-wrap group-data-[orientation=horizontal]/tabs:h-auto">
             <TabsTrigger value="question" className="gap-1.5">
-              <Bot /> {forClaim ? "From the claim" : "From your question"}
+              <Bot />
+              <span className="sm:hidden">Question</span>
+              <span className="hidden sm:inline">{forClaim ? "From the claim" : "From your question"}</span>
+            </TabsTrigger>
+            <TabsTrigger value="ask" className="gap-1.5">
+              <Sparkles />
+              <span className="sm:hidden">Ask</span>
+              <span className="hidden sm:inline">Ask the assistant</span>
             </TabsTrigger>
             <TabsTrigger value="name" className="gap-1.5">
-              <Search /> By title or DOI
+              <Search />
+              <span className="sm:hidden">Title or DOI</span>
+              <span className="hidden sm:inline">By title or DOI</span>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="question">
@@ -338,6 +413,42 @@ function SearchInner({ project }: { project: Project }) {
                 {planning ? <Loader2 className="animate-spin" /> : <Bot />} {plan ? "Re-plan" : "Plan the search"}
               </Button>
             </div>
+          </TabsContent>
+          <TabsContent value="ask">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void askAssistant();
+              }}
+            >
+              <Label htmlFor="ask" className="text-[12.5px] text-ink-600">
+                Ask the assistant for sources
+              </Label>
+              <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-start">
+                <Textarea
+                  id="ask"
+                  rows={2}
+                  value={ask}
+                  onChange={(e) => setAsk(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Enter asks (like a chat box); Shift+Enter adds a new line
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (ask.trim().length >= 8 && !searching) void askAssistant();
+                    }
+                  }}
+                  placeholder="e.g. Give me three peer-reviewed studies on how sleep affects university students' grades"
+                  className="min-h-15 flex-1 font-serif text-[16px] leading-relaxed"
+                />
+                <Button type="submit" disabled={searching || ask.trim().length < 8} className="md:mt-0.5">
+                  {searching ? <Loader2 className="animate-spin" /> : <Sparkles />} Ask
+                </Button>
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
+                The Scout turns your request into a search, OpenAlex returns only real papers, and code then checks whether any of them is about what you asked. If
+                none is, the answer is Not found: the assistant never invents a source.
+              </p>
+            </form>
           </TabsContent>
           <TabsContent value="name">
             <form
@@ -428,6 +539,40 @@ function SearchInner({ project }: { project: Project }) {
         )}
         {results && !searching && (
           <>
+            {isAnswer && answer && (
+              <Panel className={cn("mb-3 p-4", answer.covering.length ? "border-trace-200 bg-trace-50/50" : "border-rose-200 bg-rose-50/60")} role="status">
+                {answer.covering.length === 0 ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <TrustBadge label="not_found" context="source" />
+                      <p className="min-w-0 text-[14.5px] font-semibold text-rose-950">
+                        Not found: no paper in OpenAlex studies {answer.subject}. ClaimTrace does not invent sources.
+                      </p>
+                    </div>
+                    <p className="mt-2 text-[12.5px] leading-relaxed text-rose-900">
+                      {answer.terms.length
+                        ? `Code checked the title and abstract of every result for ${answer.subject}; none of them is about it.`
+                        : "Code checked every result against your request; none of them is about it."}{" "}
+                      {results.length > 0 && "Below are the closest real papers, as related reading only: each keeps its label, and nothing is saved unless you approve it."}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="flex items-start gap-2 text-[14.5px] font-semibold text-trace-950">
+                      <Check className="mt-0.5 size-4 shrink-0 text-trace-700" />
+                      Found {answer.covering.length} real paper{answer.covering.length === 1 ? "" : "s"}{" "}
+                      {answer.terms.length ? `that mention ${answer.subject}` : "on the topic of your request"}.
+                    </p>
+                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-trace-900">
+                      They are listed first. Found is not verified: when you approve and save one, ClaimTrace checks it against Crossref. Read it before you cite it.
+                    </p>
+                  </>
+                )}
+                <p className="mt-2 text-[12px] leading-relaxed text-ink-500 wrap-anywhere">
+                  Searched OpenAlex for: {answer.queries.join(" · ")} ({answer.byAi ? "the Scout's plan" : "a plan made by code, AI offline"}).
+                </p>
+              </Panel>
+            )}
             {resultsFrom === "title" && results.length > 0 && titleMatch !== null && (
               <Panel className={cn("mb-3 flex gap-3 p-4", titleMatch ? "border-trace-200 bg-trace-50/50" : "border-amber-200 bg-amber-50/60")} role="status">
                 {titleMatch ? <Check className="mt-0.5 size-4 shrink-0 text-trace-700" /> : <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />}
@@ -451,10 +596,14 @@ function SearchInner({ project }: { project: Project }) {
                     <span className="font-semibold text-ink-950">{shown.length}</span>{" "}
                     {resultsFrom === "plan"
                       ? "real records from OpenAlex. Select the ones you want to read and cite."
-                      : resultsFrom === "title"
-                        ? `real record${shown.length === 1 ? "" : "s"} from OpenAlex for that title, closest match first. Select the one you mean.`
-                        : `record${shown.length === 1 ? "" : "s"} found by DOI.`}
+                      : resultsFrom === "ask"
+                        ? `real record${shown.length === 1 ? "" : "s"} from OpenAlex for your request.`
+                        : resultsFrom === "title"
+                          ? `real record${shown.length === 1 ? "" : "s"} from OpenAlex for that title, closest match first. Select the one you mean.`
+                          : `record${shown.length === 1 ? "" : "s"} found by DOI.`}
                   </>
+                ) : resultsFrom === "ask" ? (
+                  "No records from OpenAlex for this request."
                 ) : resultsFrom === "title" ? (
                   "No record in OpenAlex for that title."
                 ) : (
@@ -470,11 +619,13 @@ function SearchInner({ project }: { project: Project }) {
               <Panel>
                 <EmptyState
                   icon={<Search />}
-                  title={resultsFrom === "plan" ? "No records matched" : "No paper found"}
+                  title={resultsFrom === "plan" ? "No records matched" : resultsFrom === "ask" ? "No related papers either" : "No paper found"}
                   description={
                     resultsFrom === "plan"
                       ? "Try broader queries, remove the year limits, or include reviews."
-                      : resultsFrom === "title"
+                      : resultsFrom === "ask"
+                        ? "OpenAlex returned nothing for this request, and ClaimTrace does not invent sources. Try fewer or broader words."
+                        : resultsFrom === "title"
                         ? "OpenAlex has no paper with that title. Check the spelling, or paste the full reference in Library → Add sources to check it against Crossref too. If a chatbot gave you this reference, it may not exist."
                         : "No paper has this DOI in Crossref or OpenAlex. If a chatbot gave you this reference, it may not exist."
                   }
@@ -482,24 +633,13 @@ function SearchInner({ project }: { project: Project }) {
               </Panel>
             ) : (
               <div className="space-y-3 pb-28">
-                {shown.map((r, i) => (
-                  <ResultCard
-                    key={keyOf(r)}
-                    record={r}
-                    index={i}
-                    inLibrary={inLibrary.has(keyOf(r))}
-                    knownLabel={libraryLabels.get(keyOf(r)) ?? checkedLabels.get(keyOf(r))}
-                    selected={selected.has(keyOf(r))}
-                    onToggle={() =>
-                      setSelected((s) => {
-                        const n = new Set(s);
-                        if (n.has(keyOf(r))) n.delete(keyOf(r));
-                        else n.add(keyOf(r));
-                        return n;
-                      })
-                    }
-                  />
-                ))}
+                {coveringShown.map((r, i) => card(r, i))}
+                {relatedShown.length > 0 && (
+                  <>
+                    <h3 className="pt-3 text-[12px] font-semibold tracking-wide text-ink-500 uppercase">Related real papers (not about your exact request)</h3>
+                    {relatedShown.map((r, i) => card(r, coveringShown.length + i))}
+                  </>
+                )}
               </div>
             )}
           </>

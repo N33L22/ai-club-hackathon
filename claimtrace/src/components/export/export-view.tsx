@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { inTextLabel } from "@/core/citation/csl";
 import { docToText } from "@/core/evidence/claims";
+import { LABELS } from "@/core/labels";
 import { CITATION_STYLES, type CitationStyleId, type Project } from "@/core/model";
 import { aiUseStatement } from "@/core/workflow/statement";
 import { sourceLabel } from "@/core/workflow/labels";
@@ -126,8 +127,16 @@ function Export({ project }: { project: Project }) {
   );
   const statement = project.statementOverride ?? generated;
   const notes = verificationNotes(list);
-  const referencesList = (entries ?? []).map((e) => e.text).join("\n\n");
-  // labels travel with the file: unverified references are listed after the reference list
+  // labels travel with the file: every reference that is not plainly verified is marked where it stands,
+  // and the Reference checks note after the list says why
+  const referencesList = (entries ?? [])
+    .map((e) => {
+      const v = byId.get(e.id)?.verification;
+      const label = sourceLabel(v);
+      const ok = label === "verified" || (v?.status === "close_match" && v.confirmedByStudent);
+      return ok ? e.text : `${e.text} [ClaimTrace: ${LABELS[label].title}]`;
+    })
+    .join("\n\n");
   const referencesText = referencesList ? `${referencesList}\n\n---\n${notes}\n` : "";
   const draftText = useMemo(
     () => `${project.title}\n\n${docToText(project.doc, (id) => inTextLabel(byId.get(id), style, numbers.get(id)))}\n\nReferences\n\n${referencesList}\n\nAI-use statement\n\n${statement}\n\n---\n${notes}\n`,

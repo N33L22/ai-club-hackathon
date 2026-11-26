@@ -22,6 +22,8 @@ The AI has three narrow roles: the **Scout** plans searches, the **Skeptic** cha
 
 Exports: reference list in APA 7, Harvard, MLA 9, IEEE or Vancouver (with a "Reference checks" section listing every reference that is not plainly verified); BibTeX and RIS; the draft with formatted citations; an auto-generated **AI-use statement**; a printable **integrity report**; the full **audit log** (JSON/CSV); a **project file** to move a project between browsers.
 
+**Start from a document:** drop a PDF, Word or text file into **New project** and ClaimTrace suggests the project's title, research question and area from it (labelled as a suggestion; you edit before creating). The text is read in your browser; only the first few thousand characters go to the AI.
+
 Around the workflow: **Previous / Next** buttons at the bottom of each page follow the steps in order; the draft saves as you type, and **Save draft** (Ctrl+S) saves at once; a project can be edited, exported, imported or deleted (deleting asks first and offers to export a copy).
 
 ## Trust labels
@@ -40,6 +42,25 @@ Around the workflow: **Previous / Next** buttons at the bottom of each page foll
 | **Supported · your text** | The same, but the evidence came from text the student pasted. Needs an acknowledgement, and the report says where it came from. |
 | **Overreach** · **Not supported** | The claim goes further than the source, or the source does not say it. Needs a decision with a reason. |
 | **Unchecked** | No text to check against, or the AI was unavailable. Never shown as Supported. |
+
+## Phase 2 edge cases: which step of our design handles each
+
+The organisers' test pack (eight pasted references, three requests) runs through the same workflow as the deck: 2 Search (Scout), 3 Approve (checkpoint 1), 5 Verify (code), 6 Challenge (Skeptic), 7 Decide (checkpoints 2 and 3). No rule is written for the pack's references.
+
+| Case | What ClaimTrace shows | Step and guardrail |
+|---|---|---|
+| 1. Invented reference | **Not found**, saying it looked in Crossref and OpenAlex; never swapped for a similar paper | 5 Verify (code) · guardrails 01 retrieval-only and 05 honest Not found |
+| 2. Real DOI, wrong paper | **Mismatch**: what you pasted next to what the DOI points to; never passed because the DOI exists | 5 Verify · guardrail 02 metadata must match |
+| 3. Small error (e.g. year) | **Close match** with your detail and the record's side by side; **Accept the fix** or **Reject the fix** | 5 Verify, then the student decides (checkpoint) |
+| 4. Retracted paper | **Retracted** with date and who flagged it; unticked when adding; red in the `@` menu, exports and report | 5 Verify · guardrail 06 retraction + export gate |
+| 5. Duplicate | "Duplicate of #N" with **Merge into #N**: one entry kept; exports never list a paper twice | 3 Approve (checkpoint 1) |
+| 6. No source exists | **Ask the assistant** answers **Not found** and shows related real papers, each labelled; it cannot invent a source | 2 Search (Scout plans, OpenAlex returns real records only) · guardrail 01 |
+| Bonus: no DOI | Found by title and authors | 5 Verify |
+| Bonus: quote not in source | The quote is checked word for word; never confirmed without the text | 6 Challenge (Skeptic + code) · guardrail 03 |
+| Bonus: database down | **Not yet verified** (couldn't check, try again) | 5 Verify |
+| Bonus: instruction in a note | Notes and source text are data, never commands; a label changes only when a check runs | 5 and 6 |
+
+Every reference shows its label in the library and in exports (copied lists carry it next to each entry), and the AI-use statement counts what was not verified.
 
 ## Day-of requirements (26 Nov)
 

@@ -33,6 +33,7 @@ const GUIDE_LABELS: TrustLabel[] = [
   "ai_reasoning",
   "verified",
   "close_match",
+  "mismatch",
   "unavailable",
   "student_added",
   "not_found",

@@ -10,7 +10,7 @@ export function sourceLabel(v: SourceVerification | undefined): TrustLabel {
     case "close_match":
       return v.confirmedByStudent ? "verified" : "close_match";
     case "not_found":
-      return "not_found";
+      return v.mismatch ? "mismatch" : "not_found";
     case "retracted":
       return "retracted";
     case "student_added":
@@ -46,6 +46,7 @@ export function claimLabel(
   if (!sources.length || sources.some((s) => !s)) return "not_found";
   const labels = sources.map((s) => sourceLabel(s!.verification));
   if (labels.includes("not_found")) return "not_found";
+  if (labels.includes("mismatch")) return "mismatch";
   if (labels.includes("retracted")) return "retracted";
   if (labels.includes("pending")) return "pending";
   if (labels.includes("close_match")) return "close_match";

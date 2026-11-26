@@ -81,6 +81,10 @@ export interface SourceVerification {
   scores?: MatchScores;
   checkedAt: string;
   confirmedByStudent?: boolean;
+  /** The reference's DOI exists but belongs to a different paper (another title, or none of the authors). */
+  mismatch?: boolean;
+  /** The student looked at a close match and kept their own details (the flag stays). */
+  fixRejected?: boolean;
   /** Databases that could not be reached during this check (the result may be incomplete). */
   unavailable?: ScholarlyService[];
 }

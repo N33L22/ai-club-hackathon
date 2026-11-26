@@ -139,6 +139,19 @@ function Body({ src, onClose }: { src: LibrarySource; onClose: () => void }) {
     };
   }, [src, project?.style]);
 
+  /** The student keeps their own details: the close-match flag stays, and the decision is logged. */
+  function rejectFix() {
+    if (!src.verification) return;
+    useStore.getState().setVerification(src.id, { ...src.verification, fixRejected: true });
+    useStore.getState().log({
+      projectId: src.projectId,
+      actor: "student",
+      action: "source.fix_rejected",
+      summary: `Rejected the suggested fix for "${r.title}": the reference keeps the student's details and stays marked Close match.`,
+    });
+    toast("Fix rejected", { description: "The reference stays marked Close match until you fix it yourself." });
+  }
+
   async function reverify() {
     setBusy(true);
     try {
@@ -204,14 +217,32 @@ function Body({ src, onClose }: { src: LibrarySource; onClose: () => void }) {
             <CloseMatchCompare src={src} />
             <div className="mt-3 flex flex-wrap gap-2">
               <Button size="sm" onClick={() => confirmCloseMatch(src.id)}>
-                <Check /> Yes, this is the paper I mean
+                <Check /> Accept the fix
               </Button>
-              <Button size="sm" variant="outline" onClick={() => router.push(`/app/search?q=${encodeURIComponent(r.title)}`)}>
+              <Button size="sm" variant="outline" onClick={rejectFix} disabled={Boolean(src.verification?.fixRejected)}>
+                <X /> Reject the fix
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => router.push(`/app/search?q=${encodeURIComponent(r.title)}`)}>
                 <Search /> Look for the right one
               </Button>
             </div>
-            <p className="mt-2 text-[12px] text-ink-500">Confirming fixes your reference to use the database&apos;s details.</p>
+            <p className="mt-2 text-[12px] text-ink-500">
+              {src.verification?.fixRejected
+                ? "You rejected the fix. The reference stays marked Close match, here and in every export, until you fix it yourself."
+                : "Accepting uses the database's details (this is the paper you meant). Rejecting keeps the flag; nothing is changed without your click."}
+            </p>
           </>
+        )}
+        {label === "mismatch" && (
+          <div className="mt-4 space-y-2 rounded-xl bg-rose-50 p-3.5 text-[13px] leading-relaxed text-rose-900 ring-1 ring-rose-200 ring-inset">
+            <p>
+              <span className="font-semibold">You pasted:</span> {src.entered?.raw ?? [src.entered?.title, src.entered?.doi && `doi:${src.entered.doi}`].filter(Boolean).join(" · ")}
+            </p>
+            <p>
+              <span className="font-semibold">The DOI points to:</span> {src.verification?.reason.replace(/^Mismatch: the DOI exists but belongs to a different paper, /, "")}
+            </p>
+            <p>ClaimTrace will not swap your reference for the DOI&apos;s paper. Fix the reference or remove it.</p>
+          </div>
         )}
         {label === "not_found" && (
           <div className="mt-4 rounded-xl bg-rose-50 p-3.5 text-[13px] leading-relaxed text-rose-900 ring-1 ring-rose-200 ring-inset">
