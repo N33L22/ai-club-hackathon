@@ -1,16 +1,19 @@
 /** Turns raw verification facts into the three human-readable check rows. */
-import type { CheckStep, ScholarlyRecord, SourceStatus, SourceVerification } from "../types";
+import type { CheckStep, ScholarlyRecord, ScholarlyService, SourceStatus, SourceVerification } from "../types";
 import type { MatchDecision } from "./match";
 
-const DB_NAMES = { crossref: "Crossref", openalex: "OpenAlex" } as const;
+export const DB_NAMES: Record<ScholarlyService, string> = { crossref: "Crossref", openalex: "OpenAlex" };
 
 export function listDatabases(record: ScholarlyRecord): string {
   return record.foundIn.map((d) => DB_NAMES[d]).join(" and ");
 }
 
-export function retractionStep(record: ScholarlyRecord | undefined): CheckStep {
+const names = (services: ScholarlyService[]) => services.map((s) => DB_NAMES[s]).join(" and ");
+
+export function retractionStep(record: ScholarlyRecord | undefined, failed: ScholarlyService[] = []): CheckStep {
   if (!record) return { id: "retraction", state: "skip", title: "Retraction", detail: "Skipped: no record to check." };
   const r = record.retraction;
+  const partial = failed.length ? ` ${names(failed)} could not be reached, so its retraction data was not checked.` : "";
   if (r?.retracted) {
     const by = r.flaggedBy.map((d) => (d === "crossref" ? "Crossref (Retraction Watch data)" : "OpenAlex")).join(" and ");
     const when = r.date ? ` on ${r.date}` : "";
@@ -21,22 +24,24 @@ export function retractionStep(record: ScholarlyRecord | undefined): CheckStep {
   const notes = r?.updates.filter((u) => u.type !== "retraction") ?? [];
   if (notes.length) {
     const list = notes.map((u) => `${u.type.replace(/_/g, " ")}${u.date ? ` (${u.date})` : ""}`).join(", ");
-    return { id: "retraction", state: "warn", title: "Not retracted", detail: `No retraction, but the paper has editorial updates: ${list}.` };
+    return { id: "retraction", state: "warn", title: "Not retracted", detail: `No retraction, but the paper has editorial updates: ${list}.${partial}` };
   }
+  const checked = [record.foundIn.includes("crossref") && "Crossref (incl. Retraction Watch)", record.foundIn.includes("openalex") && "OpenAlex"].filter(Boolean).join(" or ");
   return {
     id: "retraction",
-    state: "pass",
-    title: "Not retracted",
-    detail: `No retraction notice in ${record.foundIn.includes("crossref") ? "Crossref (incl. Retraction Watch)" : "the record"}${record.foundIn.includes("openalex") ? " or OpenAlex" : ""}.`,
+    state: failed.length ? "warn" : "pass",
+    title: failed.length ? "Partly checked" : "Not retracted",
+    detail: `No retraction notice in ${checked || "the record"}.${partial}`,
   };
 }
 
 export function buildVerification(
   decision: MatchDecision | undefined,
   record: ScholarlyRecord | undefined,
-  opts: { notFoundReason?: string; doiChecked?: boolean } = {},
+  opts: { notFoundReason?: string; failed?: ScholarlyService[] } = {},
 ): SourceVerification {
   const checkedAt = new Date().toISOString();
+  const failed = opts.failed?.length ? [...new Set(opts.failed)] : undefined;
   if (!decision || !record) {
     return {
       status: "not_found",
@@ -62,7 +67,7 @@ export function buildVerification(
         ? { id: "matches", state: "warn", title: "Close match", detail: decision.reason }
         : { id: "matches", state: "fail", title: "Different paper", detail: decision.reason };
 
-  const retraction = decision.status === "not_found" ? retractionStep(undefined) : retractionStep(record);
+  const retraction = decision.status === "not_found" ? retractionStep(undefined) : retractionStep(record, failed);
   let status: SourceStatus = decision.status;
   if (decision.status !== "not_found" && record.retraction?.retracted) status = "retracted";
 
@@ -73,6 +78,29 @@ export function buildVerification(
     matched: decision.status === "not_found" ? undefined : record,
     scores: decision.scores,
     checkedAt,
+    unavailable: failed,
+  };
+}
+
+/**
+ * A lookup that could not finish because a database did not answer. This is
+ * never reported as "Not found": that label means both databases answered and
+ * neither had the paper. A false "may be invented" is the worst error an
+ * integrity tool can make.
+ */
+export function unavailableVerification(failed: ScholarlyService[], detail?: string): SourceVerification {
+  const who = failed.length ? names(failed) : "A database";
+  const reason = detail ?? `${who} could not be reached, so ClaimTrace could not finish checking this reference. It is not marked Not found. Check again later.`;
+  return {
+    status: "unavailable",
+    reason,
+    steps: [
+      { id: "exists", state: "warn", title: "Couldn't check", detail: reason },
+      { id: "matches", state: "skip", title: "Details", detail: "Skipped: the lookup did not finish." },
+      { id: "retraction", state: "skip", title: "Retraction", detail: "Skipped: the lookup did not finish." },
+    ],
+    checkedAt: new Date().toISOString(),
+    unavailable: failed.length ? [...new Set(failed)] : undefined,
   };
 }
 

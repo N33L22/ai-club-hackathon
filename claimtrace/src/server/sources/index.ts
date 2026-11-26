@@ -1,7 +1,7 @@
 import "server-only";
 import { LIMITS } from "@/core/config";
-import { normalizeText } from "@/core/text/normalize";
-import type { ReferenceInput, RetractionInfo, ScholarlyRecord } from "@/core/types";
+import { recordKey } from "@/core/records";
+import type { ReferenceInput, RetractionInfo, ScholarlyRecord, ScholarlyService } from "@/core/types";
 import { parseReferenceText } from "@/core/verify/reference-text";
 import { crossref } from "./crossref";
 import { openalex } from "./openalex";
@@ -12,6 +12,10 @@ import type { SearchOptions } from "./types";
  * Crossref is authoritative for bibliographic metadata (it is the DOI
  * registry); OpenAlex adds abstracts, open-access status and countries.
  * Retractions are cross-checked in both.
+ *
+ * Lookups report which databases failed. "Neither database has it" and "a
+ * database did not answer" are different results, and only the first may ever
+ * become "Not found".
  */
 
 export function mergeRetraction(a?: RetractionInfo, b?: RetractionInfo): RetractionInfo {
@@ -48,26 +52,32 @@ export function mergeRecords(cr: ScholarlyRecord | null, oa: ScholarlyRecord | n
   };
 }
 
-/** Look a DOI up in both databases in parallel. Null when neither has it. */
-export async function lookupDoi(doi: string): Promise<ScholarlyRecord | null> {
-  const [cr, oa] = await Promise.allSettled([crossref.byDoi(doi), openalex.byDoi(doi)]);
-  const crRec = cr.status === "fulfilled" ? cr.value : null;
-  const oaRec = oa.status === "fulfilled" ? oa.value : null;
-  if (cr.status === "rejected" && oa.status === "rejected") throw cr.reason;
-  return mergeRecords(crRec, oaRec);
+export interface DoiLookup {
+  record: ScholarlyRecord | null;
+  /** Databases that did not answer (their silence is not evidence of absence). */
+  failed: ScholarlyService[];
 }
 
-const keyOf = (r: ScholarlyRecord) => r.doi ?? r.openalexId ?? normalizeText(r.title);
+/** Look a DOI up in both databases in parallel. Never throws: failures are reported in `failed`. */
+export async function lookupDoi(doi: string): Promise<DoiLookup> {
+  const [cr, oa] = await Promise.allSettled([crossref.byDoi(doi), openalex.byDoi(doi)]);
+  const failed: ScholarlyService[] = [];
+  if (cr.status === "rejected") failed.push("crossref");
+  if (oa.status === "rejected") failed.push("openalex");
+  return { record: mergeRecords(cr.status === "fulfilled" ? cr.value : null, oa.status === "fulfilled" ? oa.value : null), failed };
+}
 
-/** Run every planned query in OpenAlex and merge by reciprocal rank. */
+/** Run every planned query in OpenAlex and merge by reciprocal rank. Throws only if every query failed. */
 export async function searchWorks(queries: string[], opts: Omit<SearchOptions, "perPage">): Promise<ScholarlyRecord[]> {
-  const lists = await Promise.all(
+  const settled = await Promise.allSettled(
     queries.slice(0, LIMITS.maxQueries).map((q) => openalex.search!(q, { ...opts, perPage: LIMITS.searchPerQuery })),
   );
+  const lists = settled.filter((s): s is PromiseFulfilledResult<ScholarlyRecord[]> => s.status === "fulfilled").map((s) => s.value);
+  if (!lists.length) throw (settled.find((s) => s.status === "rejected") as PromiseRejectedResult).reason;
   const score = new Map<string, { rec: ScholarlyRecord; score: number }>();
   for (const list of lists) {
     list.forEach((rec, rank) => {
-      const k = keyOf(rec);
+      const k = recordKey(rec);
       const entry = score.get(k) ?? { rec, score: 0 };
       entry.score += 1 / (rank + 3);
       score.set(k, entry);
@@ -79,20 +89,27 @@ export async function searchWorks(queries: string[], opts: Omit<SearchOptions, "
     .slice(0, 30);
 }
 
-/** Candidate records for a reference with no DOI: Crossref bibliographic search plus OpenAlex. */
-export async function candidatesFor(input: ReferenceInput): Promise<ScholarlyRecord[]> {
+export interface CandidateLookup {
+  records: ScholarlyRecord[];
+  failed: ScholarlyService[];
+}
+
+/** Candidate records for a reference with no DOI: Crossref bibliographic search plus OpenAlex. Never throws. */
+export async function candidatesFor(input: ReferenceInput): Promise<CandidateLookup> {
   const text =
     input.raw ??
     [input.authors?.map((a) => a.family).join(", "), input.year, input.title].filter(Boolean).join(" ");
-  if (!text.trim()) return [];
+  if (!text.trim()) return { records: [], failed: [] };
   // OpenAlex search works best on the title alone: use the parsed title of a pasted reference
   const titleQuery = input.title ?? (input.raw ? parseReferenceText(input.raw).title : undefined) ?? text.slice(0, 200);
   const [cr, oa] = await Promise.allSettled([crossref.match!(text, 5), openalex.match!(titleQuery, 4)]);
+  const failed: ScholarlyService[] = [];
+  if (cr.status === "rejected") failed.push("crossref");
+  if (oa.status === "rejected") failed.push("openalex");
   const out = new Map<string, ScholarlyRecord>();
   for (const r of [...(cr.status === "fulfilled" ? cr.value : []), ...(oa.status === "fulfilled" ? oa.value : [])]) {
-    const k = keyOf(r);
+    const k = recordKey(r);
     if (!out.has(k)) out.set(k, r);
   }
-  if (cr.status === "rejected" && oa.status === "rejected") throw cr.reason;
-  return [...out.values()];
+  return { records: [...out.values()], failed };
 }

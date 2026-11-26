@@ -44,5 +44,53 @@
       }
     },
     "mistakes": []
+  },
+  "codeHints": {
+    "ranAt": "2026-11-25T16:38:57.207Z",
+    "total": 20,
+    "overreach": {
+      "total": 8,
+      "flagged": 8
+    },
+    "notSupported": {
+      "total": 6,
+      "flagged": 2
+    },
+    "supported": {
+      "total": 6,
+      "flagged": 0
+    },
+    "note": "Development numbers: after the first run (7 of 8), the generalisation rule was changed to read the whole source for the sample description, which fixed R5. The live Skeptic run has not seen this set."
+  },
+  "skeptic": {
+    "ranAt": "2026-11-25T18:29:36.293Z",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "total": 20,
+    "correct": 19,
+    "unchecked": 1,
+    "falseSupport": 0,
+    "avgSeconds": 3.9,
+    "byExpected": {
+      "supported": {
+        "total": 6,
+        "correct": 6
+      },
+      "overreach": {
+        "total": 8,
+        "correct": 7
+      },
+      "not_supported": {
+        "total": 6,
+        "correct": 6
+      }
+    },
+    "mistakes": [
+      {
+        "ref": "Ke2 (certainty)",
+        "expected": "overreach",
+        "got": "unchecked"
+      }
+    ],
+    "note": "Development result: the model setup was chosen by comparing four NVIDIA-hosted setups on this same set (eval/skeptic-model-comparison.md). The prompt and the evidence rules were not changed after seeing the results."
   }
 }

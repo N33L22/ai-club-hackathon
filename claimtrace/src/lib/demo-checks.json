@@ -1,0 +1,301 @@
+{
+  "provenance": "recorded",
+  "at": "2026-11-25T18:30:03.842Z",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "note": "Recorded from a live Skeptic run (nvidia/nemotron-3-ultra-550b-a55b). Shown as a labelled sample only when live AI checks are unavailable.",
+  "checks": {
+    "1kxk0n7fh9j": {
+      "demo-src-twenge": {
+        "candidates": [
+          {
+            "index": 0,
+            "text": "In two nationally representative surveys of U.S. adolescents in grades 8 through 12 ( N = 506,820) and national statistics on suicide deaths for those ages 13 to 18, adolescents’ depressive symptoms, suicide-related outcomes, and suicide rates increased between 2010 and 2015, especially among females.",
+            "score": 1
+          },
+          {
+            "index": 2,
+            "text": "Since 2010, iGen adolescents have spent more time on new media screen activities and less time on nonscreen activities, which may account for the increases in depression and suicide.",
+            "score": 0.41
+          },
+          {
+            "index": 3,
+            "text": "In contrast, cyclical economic factors such as unemployment and the Dow Jones Index were not linked to depressive symptoms or suicide rates when matched by year.",
+            "score": 0.29
+          },
+          {
+            "index": 1,
+            "text": "Adolescents who spent more time on new media (including social media and electronic devices such as smartphones) were more likely to report mental health issues, and adolescents who spent more time on nonscreen activities (in-person social interaction, sports/exercise, homework, print media, and attending religious services) were less likely.",
+            "score": 0.05
+          }
+        ],
+        "scopeFlags": [],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:29:40.885Z",
+        "patchwriting": null,
+        "directQuote": null,
+        "truncated": null,
+        "verdict": "supported",
+        "mode": "ai",
+        "evidence": {
+          "index": 0,
+          "text": "In two nationally representative surveys of U.S. adolescents in grades 8 through 12 ( N = 506,820) and national statistics on suicide deaths for those ages 13 to 18, adolescents’ depressive symptoms, suicide-related outcomes, and suicide rates increased between 2010 and 2015, especially among females."
+        },
+        "explanation": "The source directly states that depressive symptoms, suicide-related outcomes, and suicide rates increased between 2010 and 2015, especially among females, based on large nationally representative surveys and national statistics.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    },
+    "19ihwh088ro": {
+      "demo-src-twenge": {
+        "candidates": [
+          {
+            "index": 1,
+            "text": "Adolescents who spent more time on new media (including social media and electronic devices such as smartphones) were more likely to report mental health issues, and adolescents who spent more time on nonscreen activities (in-person social interaction, sports/exercise, homework, print media, and attending religious services) were less likely.",
+            "score": 1
+          },
+          {
+            "index": 2,
+            "text": "Since 2010, iGen adolescents have spent more time on new media screen activities and less time on nonscreen activities, which may account for the increases in depression and suicide.",
+            "score": 0.63
+          },
+          {
+            "index": 0,
+            "text": "In two nationally representative surveys of U.S. adolescents in grades 8 through 12 ( N = 506,820) and national statistics on suicide deaths for those ages 13 to 18, adolescents’ depressive symptoms, suicide-related outcomes, and suicide rates increased between 2010 and 2015, especially among females.",
+            "score": 0.37
+          },
+          {
+            "index": 3,
+            "text": "In contrast, cyclical economic factors such as unemployment and the Dow Jones Index were not linked to depressive symptoms or suicide rates when matched by year.",
+            "score": 0.11
+          }
+        ],
+        "scopeFlags": [
+          {
+            "kind": "causal",
+            "claimTerm": "caused",
+            "evidenceTerm": "more likely",
+            "message": "The claim says \"caused\", but the source reports \"more likely\". An association does not show cause."
+          }
+        ],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:29:45.274Z",
+        "patchwriting": null,
+        "directQuote": null,
+        "truncated": null,
+        "verdict": "overreach",
+        "mode": "ai",
+        "evidence": {
+          "index": 1,
+          "text": "Adolescents who spent more time on new media (including social media and electronic devices such as smartphones) were more likely to report mental health issues, and adolescents who spent more time on nonscreen activities (in-person social interaction, sports/exercise, homework, print media, and attending religious services) were less likely."
+        },
+        "explanation": "The source reports an association (\"more likely\") between screen time and mental health issues, not a causal relationship. The claim uses the word \"caused,\" which goes beyond what the data support.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    },
+    "m661zbkc2s": {
+      "demo-src-riehm": {
+        "candidates": [
+          {
+            "index": 10,
+            "text": "Conclusions and Relevance: Adolescents who spend more than 3 hours per day using social media may be at heightened risk for mental health problems, particularly internalizing problems.",
+            "score": 1
+          },
+          {
+            "index": 0,
+            "text": "Importance: Social media use may be a risk factor for mental health problems in adolescents.",
+            "score": 0.49
+          },
+          {
+            "index": 5,
+            "text": "Exposures: Self-reported time spent on social media during a typical day (none, ≤30 minutes, >30 minutes to ≤3 hours, >3 hours to ≤6 hours, and >6 hours) during wave 2.",
+            "score": 0.44
+          },
+          {
+            "index": 2,
+            "text": "Objective: To assess whether time spent using social media per day is prospectively associated with internalizing and externalizing problems among adolescents.",
+            "score": 0.41
+          },
+          {
+            "index": 9,
+            "text": "In adjusted analyses, use of social media for more than 3 hours per day compared with no use remained significantly associated with internalizing problems alone (>3 to ≤6 hours: RRR, 1.60; 95% CI, 1.11-2.31; >6 hours: RRR, 1.78; 95% CI, 1.15-2.77) and comorbid internalizing and externalizing problems (>3 to ≤6 hours: RRR, 2.01; 95% CI, 1.51-2.66; >6 hours: RRR, 2.44; 95% CI, 1.73-3.43) but not externalizing problems alone.",
+            "score": 0.4
+          }
+        ],
+        "scopeFlags": [],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:29:49.847Z",
+        "patchwriting": null,
+        "directQuote": null,
+        "truncated": null,
+        "verdict": "supported",
+        "mode": "ai",
+        "evidence": {
+          "index": 10,
+          "text": "Conclusions and Relevance: Adolescents who spend more than 3 hours per day using social media may be at heightened risk for mental health problems, particularly internalizing problems."
+        },
+        "explanation": "The conclusion sentence directly states that adolescents spending more than 3 hours per day on social media may be at heightened risk for internalizing problems, matching the claim's wording and scope.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    },
+    "vg9kkmx3pn": {
+      "demo-src-kelly": {
+        "candidates": [
+          {
+            "index": 4,
+            "text": "FINDINGS: The magnitude of association between social media use and depressive symptoms was larger for girls than for boys.",
+            "score": 1
+          },
+          {
+            "index": 2,
+            "text": "METHODS: We used population based data from the UK Millennium Cohort Study on 10,904 14 year olds.",
+            "score": 0.73
+          },
+          {
+            "index": 5,
+            "text": "Compared with 1-3 h of daily use: 3 to < 5 h 26% increase in scores vs 21%; ≥ 5 h 50% vs 35% for girls and boys respectively.",
+            "score": 0.35
+          },
+          {
+            "index": 3,
+            "text": "Multivariate regression and path models were used to examine associations between social media use and depressive symptoms.",
+            "score": 0.33
+          },
+          {
+            "index": 6,
+            "text": "Greater social media use related to online harassment, poor sleep, low self-esteem and poor body image; in turn these related to higher depressive symptom scores.",
+            "score": 0.28
+          }
+        ],
+        "scopeFlags": [],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:29:54.031Z",
+        "patchwriting": {
+          "words": 15,
+          "excerpt": "association between social media use and depressive symptoms was larger for girls than for boys"
+        },
+        "directQuote": null,
+        "truncated": null,
+        "verdict": "supported",
+        "mode": "ai",
+        "evidence": {
+          "index": 4,
+          "text": "FINDINGS: The magnitude of association between social media use and depressive symptoms was larger for girls than for boys."
+        },
+        "explanation": "Sentence 5 directly states that the association between social media use and depressive symptoms was larger for girls than for boys in the UK Millennium Cohort Study.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    },
+    "1vx0c5pfxmx": {
+      "demo-src-keles": {
+        "candidates": [
+          {
+            "index": 4,
+            "text": "All domains correlated with depression, anxiety and psychological distress.",
+            "score": 1
+          },
+          {
+            "index": 1,
+            "text": "This systematic review synthesized evidence on the influence of social media use on depression, anxiety and psychological distress in adolescents.",
+            "score": 0.9
+          },
+          {
+            "index": 2,
+            "text": "A search of PsycINFO, Medline, Embase, CINAHL and SSCI databases reaped 13 eligible studies, of which 12 were cross-sectional.",
+            "score": 0.23
+          },
+          {
+            "index": 3,
+            "text": "Findings were classified into four domains of social media: time spent, activity, investment and addiction.",
+            "score": 0.13
+          }
+        ],
+        "scopeFlags": [],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:29:56.371Z",
+        "patchwriting": {
+          "words": 9,
+          "excerpt": "all domains correlated with depression anxiety and psychological distress"
+        },
+        "directQuote": null,
+        "truncated": null,
+        "verdict": "supported",
+        "mode": "ai",
+        "evidence": {
+          "index": 4,
+          "text": "All domains correlated with depression, anxiety and psychological distress."
+        },
+        "explanation": "Sentence 5 directly states that all four domains of social media use correlated with depression, anxiety, and psychological distress, matching the claim exactly.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    },
+    "1i2psn1209r": {
+      "demo-src-keles": {
+        "candidates": [
+          {
+            "index": 5,
+            "text": "However, there are considerable caveats due to methodological limitations of cross-sectional design, sampling and measures.",
+            "score": 1
+          },
+          {
+            "index": 2,
+            "text": "A search of PsycINFO, Medline, Embase, CINAHL and SSCI databases reaped 13 eligible studies, of which 12 were cross-sectional.",
+            "score": 0.13
+          }
+        ],
+        "scopeFlags": [],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:29:59.298Z",
+        "patchwriting": null,
+        "directQuote": {
+          "text": "considerable caveats due to methodological limitations of cross-sectional design, sampling and measures",
+          "foundInSource": true
+        },
+        "truncated": null,
+        "verdict": "supported",
+        "mode": "ai",
+        "evidence": {
+          "index": 5,
+          "text": "However, there are considerable caveats due to methodological limitations of cross-sectional design, sampling and measures."
+        },
+        "explanation": "The source explicitly states the same warning about considerable caveats due to methodological limitations of cross-sectional design, sampling and measures.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    },
+    "11dgjq7ku9p": {
+      "demo-src-przybylski": {
+        "candidates": [
+          {
+            "index": 3,
+            "text": "Overall, the evidence indicated that moderate use of digital technology is not intrinsically harmful and may be advantageous in a connected world.",
+            "score": 1
+          },
+          {
+            "index": 1,
+            "text": "Using a preregistered plan for analyzing data collected from a representative sample of English adolescents ( n = 120,115), we obtained evidence that the links between digital-screen time and mental well-being are described by quadratic functions.",
+            "score": 0.39
+          }
+        ],
+        "scopeFlags": [],
+        "quoteVerified": true,
+        "textOrigin": "abstract",
+        "checkedAt": "2026-11-25T18:30:01.688Z",
+        "patchwriting": null,
+        "directQuote": null,
+        "truncated": null,
+        "verdict": "supported",
+        "mode": "ai",
+        "evidence": {
+          "index": 3,
+          "text": "Overall, the evidence indicated that moderate use of digital technology is not intrinsically harmful and may be advantageous in a connected world."
+        },
+        "explanation": "The source directly states that moderate use is not intrinsically harmful, matching the claim's wording and scope.",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b"
+      }
+    }
+  }
+}

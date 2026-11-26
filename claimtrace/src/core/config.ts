@@ -16,6 +16,18 @@ export const THRESHOLDS = {
   surnameMatch: 0.9,
   /** A quoted evidence sentence must match the source sentence this closely. */
   quoteMatch: 0.95,
+  /**
+   * The AI's quoted evidence must cover at least this share of the source sentence
+   * (a short fragment proves the words exist, not what the sentence says), unless
+   * the AI also named that exact sentence and quoted at least `quoteMinWords` words of it.
+   */
+  quoteCoverage: 0.6,
+  quoteMinWords: 6,
+  /**
+   * Evidence must be about the claim: it shares at least this share of the claim's
+   * key terms, or it is the sentence code itself ranks most relevant.
+   */
+  evidenceOverlap: 0.25,
   /** Consecutive words shared with the source that trigger the patchwriting flag. */
   patchwritingWords: 8,
   /** Minimum content-word overlap for a summary sentence to count as grounded. */
@@ -29,4 +41,8 @@ export const LIMITS = {
   maxQueries: 4,
   searchPerQuery: 12,
   bulkReferences: 40,
+  /** References per verify-batch request: small batches finish well inside the route's time limit. */
+  batchChunk: 4,
+  /** Characters of a claim used as a search question ("Find a better source"). */
+  searchQuestionChars: 300,
 } as const;

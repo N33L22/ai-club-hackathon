@@ -1,24 +1,44 @@
 "use client";
 
-import { ArrowRight, Cpu, Loader2, PenLine, ShieldCheck } from "lucide-react";
+import { ArrowRight, Cpu, FlaskConical, Loader2, PenLine, ShieldCheck } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { EmptyState, Page, PageHeader, Panel } from "@/components/app/page";
 import { RequireProject } from "@/components/app/require-project";
 import { ClaimCard } from "@/components/claims/claim-card";
 import { useClaimRunner } from "@/components/claims/use-claim-runner";
 import { SourceSheet } from "@/components/library/source-sheet";
 import { LabelBar } from "@/components/trust/label-bar";
+import { LabelGuide } from "@/components/trust/label-guide";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CLAIM_LABEL_ORDER, LABELS } from "@/core/labels";
+import { CLAIM_LABEL_ORDER, LABELS, type TrustLabel } from "@/core/labels";
 import type { Project } from "@/core/model";
 import { decisionApplies } from "@/core/workflow/gate";
+import { loadSampleChecks, sampleCandidates, sampleInfo } from "@/lib/demo";
 import { countBy, useAiStatus, useGate, useProjectClaims, type ResolvedClaim } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "decide" | "ack" | "verified" | "pending";
+type Filter = "all" | "decide" | "ack" | "done" | "pending";
+
+/** Claim labels first, then the reference labels a claim card can show, for the "What the labels mean" guide. */
+const GUIDE_LABELS: TrustLabel[] = [
+  "supported",
+  "supported_own_text",
+  "overreach",
+  "not_supported",
+  "unchecked",
+  "ai_reasoning",
+  "verified",
+  "close_match",
+  "unavailable",
+  "student_added",
+  "not_found",
+  "retracted",
+  "pending",
+];
 
 function bucket(c: ResolvedClaim, missingPage: boolean): Exclude<Filter, "all"> {
   const gate = LABELS[c.label].gate;
@@ -26,7 +46,27 @@ function bucket(c: ResolvedClaim, missingPage: boolean): Exclude<Filter, "all"> 
   if (missingPage) return "decide";
   if (gate === "decide" && !decisionApplies(c.label, c.decision)) return "decide";
   if (gate === "acknowledge" && !decisionApplies(c.label, c.decision)) return "ack";
-  return "verified";
+  return "done";
+}
+
+/** Shown on the demo project when live AI checks are unavailable: labelled sample results instead. */
+function SampleBanner({ project, claims, onLoad, busy }: { project: Project; claims: ResolvedClaim[]; onLoad: () => void; busy: boolean }) {
+  const aiFailed = claims.some((c) => c.checks.some((k) => k && k.mode === "code" && k.verdict === "unchecked" && k.reason !== "no_text"));
+  const available = useMemo(() => sampleCandidates(project.id), [project.id, claims]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!project.isDemo || !available || !aiFailed) return null;
+  return (
+    <Panel className="mb-4 flex flex-wrap items-center gap-3 border-violet-200 bg-violet-50/50 p-4">
+      <FlaskConical className="size-4 shrink-0 text-violet-700" />
+      <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-violet-950">
+        <span className="font-semibold">Live AI checks are unavailable.</span> For the demo you can show{" "}
+        {sampleInfo.provenance === "recorded" ? `results recorded from a live run of ${sampleInfo.model ?? "the Skeptic"}` : "sample results prepared by Team 6"} for {available} claim
+        check{available === 1 ? "" : "s"}. Each is labelled Sample, logged, and counted in the AI-use statement.
+      </p>
+      <Button size="sm" variant="outline" onClick={onLoad} disabled={busy}>
+        <FlaskConical /> Show sample results
+      </Button>
+    </Panel>
+  );
 }
 
 function Review({ project }: { project: Project }) {
@@ -49,8 +89,13 @@ function Review({ project }: { project: Project }) {
     { id: "decide", label: "Needs a decision", n: buckets.decide ?? 0, tone: "text-amber-800 bg-amber-100" },
     { id: "ack", label: "To acknowledge", n: buckets.ack ?? 0, tone: "text-sky-800 bg-sky-100" },
     { id: "pending", label: "Not checked", n: buckets.pending ?? 0 },
-    { id: "verified", label: "Done", n: buckets.verified ?? 0, tone: "text-trace-800 bg-trace-100" },
+    { id: "done", label: "Done", n: buckets.done ?? 0, tone: "text-trace-800 bg-trace-100" },
   ];
+
+  const showSamples = () => {
+    const n = loadSampleChecks(project.id);
+    if (n) toast.success(`Showing ${n} sample result${n === 1 ? "" : "s"}`, { description: "Labelled Sample, not live AI checks." });
+  };
 
   return (
     <Page>
@@ -91,6 +136,8 @@ function Review({ project }: { project: Project }) {
         </Panel>
       )}
 
+      <SampleBanner project={project} claims={claims} onLoad={showSamples} busy={Boolean(progress)} />
+
       {claims.length === 0 ? (
         <Panel>
           <EmptyState
@@ -126,13 +173,14 @@ function Review({ project }: { project: Project }) {
             <LabelBar className="mt-4" counts={counts} order={CLAIM_LABEL_ORDER} />
           </Panel>
 
-          <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter claims">
+          <LabelGuide labels={GUIDE_LABELS} context="claim" className="mb-4" />
+
+          <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Filter claims">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
-                role="tab"
-                aria-selected={filter === t.id}
+                aria-pressed={filter === t.id}
                 onClick={() => setFilter(t.id)}
                 className={cn(
                   "inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-colors",

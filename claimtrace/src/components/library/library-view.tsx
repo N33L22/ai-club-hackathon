@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EmptyState, Page, PageHeader, Panel } from "@/components/app/page";
 import { RequireProject } from "@/components/app/require-project";
+import { LabelGuide } from "@/components/trust/label-guide";
 import { TrustBadge, toneOf } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,9 @@ import { SourceMixView } from "./source-mix";
 import { SourceSheet } from "./source-sheet";
 
 type FolderFilter = "all" | "unfiled" | string;
+
+/** Reference labels in reading order for the "What the labels mean" guide. */
+const GUIDE_LABELS: TrustLabel[] = ["verified", "close_match", "unavailable", "student_added", "not_found", "retracted", "pending"];
 
 function SourceRow({ src, onOpen, index }: { src: LibrarySource; onOpen: () => void; index: number }) {
   const label = sourceLabel(src.verification);
@@ -139,6 +143,8 @@ function Library({ project }: { project: Project }) {
         }
       />
 
+      <LabelGuide labels={GUIDE_LABELS} context="source" className="mb-5" />
+
       <Tabs defaultValue="sources">
         <TabsList className="mb-5">
           <TabsTrigger value="sources">Sources</TabsTrigger>
@@ -147,7 +153,8 @@ function Library({ project }: { project: Project }) {
 
         <TabsContent value="sources">
           <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-            <aside className="space-y-6">
+            {/* on phones the sources come first, folders and filters after them */}
+            <aside className="order-last space-y-6 lg:order-0">
               <div className="space-y-0.5">
                 <p className="px-2.5 pb-1.5 text-[11px] font-medium tracking-wide text-ink-400 uppercase">Folders</p>
                 <FolderButton {...folderProps("all")} name="All sources" icon={BookOpen} />

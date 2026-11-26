@@ -3,11 +3,20 @@
 import { Check, ChevronDown, ExternalLink, FileText, LockOpen, OctagonX, Quote } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { TrustBadge } from "@/components/trust/trust-badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { TrustLabel } from "@/core/labels";
 import { stripRetractedPrefix } from "@/core/text/normalize";
 import { splitSentences } from "@/core/text/sentences";
 import type { ScholarlyRecord } from "@/core/types";
 import { cn } from "@/lib/utils";
+
+/** The label every search result carries until it is saved and verified. */
+export const SEARCH_RESULT_LABEL = {
+  title: "From OpenAlex · not yet checked",
+  meaning:
+    "A real record returned by OpenAlex; the AI never writes references. When you approve and save it, ClaimTrace checks it against Crossref (details and retraction status) and labels it Verified, Close match or Retracted.",
+};
 
 export function authorLine(r: Pick<ScholarlyRecord, "authors">, max = 3): string {
   const names = r.authors.map((a) => (a.given ? `${a.given.split(/\s+/).map((g) => g[0]).join("")} ${a.family}` : a.family));
@@ -31,12 +40,15 @@ export function ResultCard({
   record,
   selected,
   inLibrary,
+  libraryLabel,
   onToggle,
   index,
 }: {
   record: ScholarlyRecord;
   selected: boolean;
   inLibrary: boolean;
+  /** The label of the saved copy, when this record is already in the library. */
+  libraryLabel?: TrustLabel;
   onToggle: () => void;
   index: number;
 }) {
@@ -67,10 +79,14 @@ export function ResultCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            {retracted && (
+            {retracted ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-rose-900 px-2 py-0.5 text-[11px] font-medium text-white">
                 <OctagonX className="size-3" /> Retracted
               </span>
+            ) : libraryLabel ? (
+              <TrustBadge label={libraryLabel} context="source" size="sm" />
+            ) : (
+              <TrustBadge label="pending" context="source" size="sm" title={SEARCH_RESULT_LABEL.title} meaning={SEARCH_RESULT_LABEL.meaning} />
             )}
             {record.type && TYPE_LABEL[record.type] && record.type !== "article" && (
               <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium text-ink-700">{TYPE_LABEL[record.type]}</span>

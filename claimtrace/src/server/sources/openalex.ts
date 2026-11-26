@@ -87,7 +87,7 @@ export const openalex: SourceConnector = {
 
   async byDoi(doi) {
     const url = `${BASE}/works/doi:${encodeURIComponent(doi)}?${withAuth(new URLSearchParams({ select: SELECT }))}`;
-    const res = await getJson<OaWork>(url, { service: "OpenAlex" });
+    const res = await getJson<OaWork>(url, { service: "OpenAlex", pool: "openalex" });
     return res.status === 200 && res.data ? mapWork(res.data) : null;
   },
 
@@ -98,13 +98,13 @@ export const openalex: SourceConnector = {
     if (opts.onlyWithAbstract) filters.push("has_abstract:true");
     filters.push(opts.includeReviews ? "type:article|review|preprint" : "type:article|preprint");
     const params = new URLSearchParams({ search: query, per_page: String(opts.perPage), select: SELECT, filter: filters.join(",") });
-    const res = await getJson<{ results: OaWork[] }>(`${BASE}/works?${withAuth(params)}`, { service: "OpenAlex" });
+    const res = await getJson<{ results: OaWork[] }>(`${BASE}/works?${withAuth(params)}`, { service: "OpenAlex", pool: "openalex" });
     return (res.data?.results ?? []).map(mapWork);
   },
 
   async match(text: string, rows: number) {
     const params = new URLSearchParams({ search: text.slice(0, 300), per_page: String(rows), select: SELECT });
-    const res = await getJson<{ results: OaWork[] }>(`${BASE}/works?${withAuth(params)}`, { service: "OpenAlex" });
+    const res = await getJson<{ results: OaWork[] }>(`${BASE}/works?${withAuth(params)}`, { service: "OpenAlex", pool: "openalex" });
     return (res.data?.results ?? []).map(mapWork);
   },
 };

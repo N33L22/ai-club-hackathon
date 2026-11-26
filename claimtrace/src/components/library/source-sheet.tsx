@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { inTextLabel } from "@/core/citation/csl";
+import { pastedTextMatch } from "@/core/evidence/text-match";
 import { checkText, type LibrarySource } from "@/core/model";
 import { stripRetractedPrefix } from "@/core/text/normalize";
 import { splitSentences } from "@/core/text/sentences";
@@ -141,14 +142,16 @@ function Body({ src, onClose }: { src: LibrarySource; onClose: () => void }) {
   async function reverify() {
     setBusy(true);
     try {
-      await verifySource(src.id);
-      toast.success("Checked again against Crossref and OpenAlex");
+      const outcome = await verifySource(src.id);
+      if (outcome === "kept_previous") toast.warning("Could not reach the databases", { description: "The earlier result is kept. Try again in a moment." });
+      else toast.success("Checked again against Crossref and OpenAlex");
     } catch {
       toast.error("Could not reach the databases. Try again in a moment.");
     } finally {
       setBusy(false);
     }
   }
+  const pasted = text.trim().split(/\s+/).length >= 8 ? pastedTextMatch(text, r) : null;
 
   return (
     <>
@@ -212,8 +215,20 @@ function Body({ src, onClose }: { src: LibrarySource; onClose: () => void }) {
         )}
         {label === "not_found" && (
           <div className="mt-4 rounded-xl bg-rose-50 p-3.5 text-[13px] leading-relaxed text-rose-900 ring-1 ring-rose-200 ring-inset">
-            This reference could not be traced to a real record. It may be invented (a common problem with AI-generated references). Remove it, or search for the real source.
+            Crossref and OpenAlex both answered, and neither has a record that matches. The reference may be invented (a common problem with AI-generated references), or
+            badly garbled. Remove it, or search for the real source.
           </div>
+        )}
+        {label === "unavailable" && (
+          <div className="mt-4 rounded-xl bg-sky-50 p-3.5 text-[13px] leading-relaxed text-sky-900 ring-1 ring-sky-200 ring-inset">
+            A database did not answer, so this reference has not been checked. That says nothing about whether it is real. Use <b>Check again</b> in a moment.
+          </div>
+        )}
+        {src.origin === "database" && !src.entered && label === "verified" && (
+          <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+            Saved from a database search, so its details come from the record itself. The check confirms the record resolves in Crossref or OpenAlex and looks for
+            retraction notices.
+          </p>
         )}
         {label === "retracted" && (
           <div className="mt-4 rounded-xl bg-rose-50 p-3.5 text-[13px] leading-relaxed text-rose-900 ring-1 ring-rose-200 ring-inset">
@@ -254,9 +269,15 @@ function Body({ src, onClose }: { src: LibrarySource; onClose: () => void }) {
               placeholder="Paste the abstract or a passage you have read. Claims citing this source will be checked against it."
               className="font-serif text-[14.5px] leading-relaxed"
             />
+            {pasted && !pasted.related && (
+              <p className="mt-2 flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] leading-relaxed text-amber-900 ring-1 ring-amber-200 ring-inset">
+                This text shares few key terms with the paper&apos;s title{r.abstract ? " or abstract" : ""}. Check that it comes from this paper: claims checked against it are
+                labelled &ldquo;Supported · your text&rdquo;, and the integrity report shows where the evidence came from.
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <p className="max-w-sm text-[11.5px] leading-relaxed text-ink-400">
-                Stays in this browser. Only the sentences needed for a check are sent to the AI. Paste only text you have actually read.
+                Stays in this browser. Only the sentences needed for a check are sent to the AI. Paste only text from this source that you have actually read.
               </p>
               <div className="flex gap-2">
                 {src.studentText && (

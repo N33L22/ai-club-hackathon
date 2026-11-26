@@ -115,6 +115,7 @@ export const crossref: SourceConnector = {
   async byDoi(doi) {
     const res = await getJson<{ message: CrItem }>(`${BASE}/works/${encodeURIComponent(doi)}?${polite(new URLSearchParams())}`, {
       service: "Crossref",
+      pool: "crossref-single",
     });
     return res.status === 200 && res.data?.message ? mapItem(res.data.message) : null;
   },
@@ -125,7 +126,7 @@ export const crossref: SourceConnector = {
       rows: String(rows),
       select: "DOI,title,subtitle,author,issued,published,published-print,published-online,container-title,publisher,volume,issue,page,type,URL,updated-by",
     });
-    const res = await getJson<{ message: { items: CrItem[] } }>(`${BASE}/works?${polite(params)}`, { service: "Crossref" });
+    const res = await getJson<{ message: { items: CrItem[] } }>(`${BASE}/works?${polite(params)}`, { service: "Crossref", pool: "crossref-list" });
     return (res.data?.message.items ?? []).map(mapItem);
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, FileCheck2, Hand, Lock, PencilLine, ScrollText } from "lucide-react";
+import { ArrowRight, Check, FileCheck2, Hand, Lock, PencilLine, ScrollText, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -9,6 +9,7 @@ import { Page, PageHeader, Panel, PanelHeader } from "@/components/app/page";
 import { RequireProject } from "@/components/app/require-project";
 import { STEPS, useWorkflowProgress } from "@/components/app/workflow-stepper";
 import { NumberTicker } from "@/components/magicui/number-ticker";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { LabelBar } from "@/components/trust/label-bar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +23,37 @@ import { countBy, useGate, useProjectClaims, useProjectSources, useSourceCounts 
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+/** The demo in one guided path: judges and first-time visitors follow three pages, not ten. */
+function DemoPath({ checked, decided, signedOff }: { checked: boolean; decided: boolean; signedOff: boolean }) {
+  const steps = [
+    { n: 1, title: "Check the claims", text: "Run every check: each claim gets a label and the exact source sentence behind it.", href: "/app/review", done: checked },
+    { n: 2, title: "Decide on each flag", text: "Keep it with a reason, acknowledge it, or fix the draft. Nothing exports until you do.", href: "/app/review", done: decided },
+    { n: 3, title: "Sign off and export", text: "Export unlocks with the reference list, the AI-use statement and the integrity report.", href: "/app/export", done: signedOff },
+  ];
+  return (
+    <Panel className="mb-4 border-trace-200 bg-gradient-to-br from-trace-50/70 to-white p-5">
+      <p className="font-mono text-[11px] tracking-[0.14em] text-trace-700 uppercase">The demo in three steps</p>
+      <ol className="mt-3 grid gap-3 md:grid-cols-3">
+        {steps.map((s) => (
+          <li key={s.n}>
+            <Link href={s.href} className="group flex h-full gap-3 rounded-xl border border-ink-200/80 bg-white p-3.5 shadow-card transition-colors hover:border-trace-300">
+              <span className={cn("grid size-7 shrink-0 place-items-center rounded-full font-mono text-[12px]", s.done ? "bg-trace-500 text-white" : "bg-ink-950 text-white")}>
+                {s.done ? <Check className="size-3.5" /> : s.n}
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1 text-[14px] font-semibold text-ink-950">
+                  {s.title} <ArrowRight className="size-3.5 text-ink-400 transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <span className="mt-0.5 block text-[12.5px] leading-relaxed text-ink-500">{s.text}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </Panel>
+  );
+}
+
 const WHO_STYLE: Record<string, string> = {
   You: "bg-ink-100 text-ink-700",
   Code: "bg-trace-100 text-trace-800",
@@ -29,7 +61,7 @@ const WHO_STYLE: Record<string, string> = {
   "AI Skeptic": "bg-violet-100 text-violet-700",
 };
 
-function EditProjectDialog({ project, open, onOpenChange }: { project: Project; open: boolean; onOpenChange: (o: boolean) => void }) {
+function EditProjectDialog({ project, open, onOpenChange, onDelete }: { project: Project; open: boolean; onOpenChange: (o: boolean) => void; onDelete: () => void }) {
   const update = useStore((s) => s.updateProject);
   const [title, setTitle] = useState(project.title);
   const [question, setQuestion] = useState(project.question);
@@ -66,19 +98,31 @@ function EditProjectDialog({ project, open, onOpenChange }: { project: Project; 
             </Select>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+        <DialogFooter className="sm:justify-between">
           <Button
-            disabled={title.trim().length < 2 || question.trim().length < 8}
+            variant="ghost"
+            className="text-rose-700 hover:bg-rose-50 hover:text-rose-800"
             onClick={() => {
-              update(project.id, { title: title.trim(), question: question.trim(), style });
               onOpenChange(false);
+              onDelete();
             }}
           >
-            Save
+            <Trash2 /> Delete project…
           </Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={title.trim().length < 2 || question.trim().length < 8}
+              onClick={() => {
+                update(project.id, { title: title.trim(), question: question.trim(), style });
+                onOpenChange(false);
+              }}
+            >
+              Save
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -100,6 +144,7 @@ function Stat({ label, value, children, href, cta }: { label: string; value: num
 
 function Overview({ project }: { project: Project }) {
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const sources = useProjectSources(project.id);
   const claims = useProjectClaims(project);
   const gate = useGate(project, claims);
@@ -131,6 +176,8 @@ function Overview({ project }: { project: Project }) {
           </>
         }
       />
+
+      {project.isDemo && <DemoPath checked={claims.length > 0 && gate.pending === 0} decided={gate.pending + gate.needDecision + gate.needAck === 0} signedOff={Boolean(project.signOff)} />}
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <Panel className="relative overflow-hidden p-6">
@@ -226,7 +273,7 @@ function Overview({ project }: { project: Project }) {
           </div>
           <ul className="mt-4 flex-1 space-y-1.5 text-[12.5px] text-ink-600">
             <li className="flex justify-between">
-              Not checked yet <span className="font-mono">{gate.pending}</span>
+              Not yet checked <span className="font-mono">{gate.pending}</span>
             </li>
             <li className="flex justify-between">
               Flags needing a decision <span className="font-mono">{gate.needDecision}</span>
@@ -260,7 +307,8 @@ function Overview({ project }: { project: Project }) {
         <ActivityList events={recent} />
       </Panel>
 
-      <EditProjectDialog key={`${project.id}-${editing}`} project={project} open={editing} onOpenChange={setEditing} />
+      <EditProjectDialog key={`${project.id}-${editing}`} project={project} open={editing} onOpenChange={setEditing} onDelete={() => setDeleting(true)} />
+      <DeleteProjectDialog project={project} open={deleting} onOpenChange={setDeleting} />
     </Page>
   );
 }

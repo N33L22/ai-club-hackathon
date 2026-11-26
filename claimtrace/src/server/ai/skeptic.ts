@@ -1,12 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { LIMITS, THRESHOLDS } from "@/core/config";
-import { directQuoteIn, verifyQuote } from "@/core/evidence/quote";
-import { rankSentences } from "@/core/evidence/rank";
-import { detectScope } from "@/core/evidence/scope";
-import { longestCommonRun, withoutQuotes } from "@/core/text/overlap";
-import { splitSentences } from "@/core/text/sentences";
-import type { ClaimCheck, ClaimVerdict, TextOrigin } from "@/core/types";
+import { judgeReply, prepareCheck } from "@/core/evidence/judge";
+import type { ClaimCheck, TextOrigin } from "@/core/types";
 import { AiUnavailable, chatJson } from "./client";
 import { SKEPTIC_SYSTEM, skepticUser } from "./prompts";
 
@@ -28,37 +23,35 @@ export interface SkepticInput {
   citedAs: string;
   text: string;
   textOrigin: TextOrigin;
+  /** Length of the original text, when the browser had to shorten it. */
+  textChars?: number;
 }
 
 /**
  * The Skeptic: code prepares and re-checks, the model judges.
  * 1. code ranks candidate sentences and applies scope rules (hints)
  * 2. the model picks a sentence and a verdict
- * 3. code confirms the quoted sentence really exists in the source
- * If the AI is unavailable, the claim stays "Unchecked", never "Verified".
+ * 3. code confirms the evidence is a whole sentence of the source and is about
+ *    the claim (core/evidence/judge.ts)
+ * If the AI is unavailable, the claim stays "Unchecked", never "Supported".
  */
 export async function checkClaim(input: SkepticInput): Promise<ClaimCheck> {
   const checkedAt = new Date().toISOString();
-  const sentences = splitSentences(input.text.slice(0, LIMITS.sourceTextChars)).slice(0, LIMITS.maxSentences);
-  const base = {
-    candidates: [] as ClaimCheck["candidates"],
-    scopeFlags: [] as ClaimCheck["scopeFlags"],
-    quoteVerified: false,
-    textOrigin: input.textOrigin,
-    checkedAt,
-  };
+  const prep = prepareCheck(input.claim, input.text, input.textChars);
+  const base = { candidates: [] as ClaimCheck["candidates"], scopeFlags: [] as ClaimCheck["scopeFlags"], quoteVerified: false, textOrigin: input.textOrigin, checkedAt };
 
-  if (!sentences.length || input.textOrigin === "none") {
-    return { ...base, verdict: "unchecked", mode: "code", reason: "no_text", patchwriting: null, directQuote: null };
+  if (!prep.sentences.length || input.textOrigin === "none") {
+    return { ...base, verdict: "unchecked", mode: "code", reason: "no_text", patchwriting: null, directQuote: null, truncated: null };
   }
 
-  const candidates = rankSentences(input.claim, sentences, 5);
-  const scopeFlags = detectScope(input.claim, candidates.length ? candidates.slice(0, 3).map((c) => c.text) : sentences);
-  const run = longestCommonRun(withoutQuotes(input.claim), input.text);
-  const patchwriting = run.words >= THRESHOLDS.patchwritingWords ? { words: run.words, excerpt: run.excerpt } : null;
-  const q = directQuoteIn(input.claim);
-  const directQuote = q ? { text: q, foundInSource: verifyQuote(q, sentences).ok } : null;
-  const shared = { ...base, candidates, scopeFlags, patchwriting, directQuote };
+  const shared = {
+    ...base,
+    candidates: prep.candidates,
+    scopeFlags: prep.scopeFlags,
+    patchwriting: prep.patchwriting,
+    directQuote: prep.directQuote,
+    truncated: prep.truncated,
+  };
 
   try {
     const { data, model } = await chatJson(
@@ -69,8 +62,8 @@ export async function checkClaim(input: SkepticInput): Promise<ClaimCheck> {
           content: skepticUser({
             claim: input.claim,
             citedAs: input.citedAs,
-            hints: scopeFlags.map((f) => f.message),
-            sentences,
+            hints: prep.scopeFlags.map((f) => f.message),
+            sentences: prep.sentences,
             origin: input.textOrigin === "student_text" ? "text the student pasted" : "abstract",
           }),
         },
@@ -79,24 +72,15 @@ export async function checkClaim(input: SkepticInput): Promise<ClaimCheck> {
       { maxTokens: 500 },
     );
 
-    const claimedIndex = data.sentence !== null ? data.sentence - 1 : null;
-    const quote = data.quote.trim() || (claimedIndex !== null && sentences[claimedIndex]) || "";
-    const qc = quote ? verifyQuote(quote, sentences, claimedIndex) : { ok: false, similarity: 0 };
-    const verdict: ClaimVerdict = data.verdict;
-    const explanation = data.explanation.trim() || undefined;
-
-    if ((verdict === "supported" || verdict === "overreach") && !qc.ok) {
-      // the model's evidence is not in the source: no label beyond "Unchecked"
-      return { ...shared, verdict: "unchecked", mode: "ai", reason: "quote_not_in_source", explanation, model };
-    }
-
+    const judged = judgeReply(input.claim, prep, data);
     return {
       ...shared,
-      verdict,
+      verdict: judged.verdict,
       mode: "ai",
-      evidence: qc.ok && qc.index !== undefined ? { index: qc.index, text: sentences[qc.index] } : undefined,
-      quoteVerified: qc.ok,
-      explanation,
+      evidence: judged.evidence,
+      quoteVerified: judged.quoteVerified,
+      reason: judged.reason,
+      explanation: data.explanation.trim() || undefined,
       model,
     };
   } catch (e) {

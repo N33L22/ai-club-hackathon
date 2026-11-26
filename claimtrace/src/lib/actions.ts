@@ -6,15 +6,23 @@
  * and every AI output and student decision is recorded.
  */
 import { inTextLabel, shortRef } from "@/core/citation/csl";
+import { LIMITS } from "@/core/config";
 import type { DraftClaim } from "@/core/evidence/claims";
 import { LABELS } from "@/core/labels";
 import { checkText, type LibrarySource } from "@/core/model";
+import { recordKey } from "@/core/records";
 import type { ClaimCheck, ReferenceInput, ScholarlyRecord, SearchPlan } from "@/core/types";
+import { parseReferenceText } from "@/core/verify/reference-text";
 import { studentAddedVerification } from "@/core/verify/steps";
 import type { DecisionAction } from "@/core/workflow/gate";
 import { sourceLabel } from "@/core/workflow/labels";
-import { api } from "./api";
+import { api, ApiError, type BatchItem } from "./api";
 import { useStore } from "./store";
+
+/** Text for a check, shortened to what the API accepts; the original length lets the server say what was left out. */
+function textForCheck(text: string): { text: string; textChars?: number } {
+  return text.length > LIMITS.sourceTextChars ? { text: text.slice(0, LIMITS.sourceTextChars), textChars: text.length } : { text };
+}
 
 const S = () => useStore.getState();
 
@@ -40,16 +48,31 @@ export function approvePlan(projectId: string, plan: SearchPlan) {
 
 /* --------------------------- Step 3: library ------------------------------- */
 
-export async function verifySource(sourceId: string): Promise<void> {
+/**
+ * Re-runs the Verifier for a library source. If the databases cannot be
+ * reached, an earlier finished result is kept (a failed re-check must not
+ * replace "Verified" or "Retracted" with "Couldn't check").
+ */
+export async function verifySource(sourceId: string): Promise<"updated" | "kept_previous"> {
   const src = S().sources[sourceId];
-  if (!src) return;
+  if (!src) return "updated";
   if (src.origin === "student") {
     S().setVerification(sourceId, studentAddedVerification());
-    return;
+    return "updated";
   }
   const r = src.record;
   const input: ReferenceInput = src.entered ?? { doi: r.doi, title: r.title, authors: r.authors.slice(0, 3), year: r.year };
   const res = await api.verify(input);
+  const previous = src.verification;
+  if (res.verification.status === "unavailable" && previous && previous.status !== "unavailable") {
+    S().log({
+      projectId: src.projectId,
+      actor: "code:verifier",
+      action: "source.recheck_unavailable",
+      summary: `${shortRef(src)}: could not re-check (${res.verification.reason}) The earlier result (${LABELS[sourceLabel(previous)].title}) was kept.`,
+    });
+    return "kept_previous";
+  }
   S().setVerification(sourceId, res.verification, res.record);
   S().log({
     projectId: src.projectId,
@@ -58,6 +81,33 @@ export async function verifySource(sourceId: string): Promise<void> {
     summary: `${shortRef(S().sources[sourceId])}: ${LABELS[sourceLabel(res.verification)].title}. ${res.verification.reason}`,
     meta: { status: res.verification.status },
   });
+  return "updated";
+}
+
+/** Sources whose check is running in this tab (so a resume never runs one twice). */
+const inFlight = new Set<string>();
+
+async function verifyOnce(sourceId: string): Promise<void> {
+  if (inFlight.has(sourceId)) return;
+  inFlight.add(sourceId);
+  try {
+    await verifySource(sourceId);
+  } catch {
+    // stays "Not checked yet"; it is retried on the next load
+  } finally {
+    inFlight.delete(sourceId);
+  }
+}
+
+/**
+ * Checks started in the background stop if the page is closed or reloaded,
+ * which would leave a source "Not checked yet" for good. Called once the
+ * saved data has loaded: resumes every unfinished check, a few at a time.
+ */
+export function resumePendingVerifications(): number {
+  const pending = Object.values(S().sources).filter((s) => !s.verification && s.origin === "database" && !inFlight.has(s.id));
+  void runPool(pending.map((s) => s.id), 2, verifyOnce);
+  return pending.length;
 }
 
 export function saveRecords(projectId: string, records: ScholarlyRecord[], folderId?: string): string[] {
@@ -65,19 +115,20 @@ export function saveRecords(projectId: string, records: ScholarlyRecord[], folde
   const existing = new Set(
     Object.values(S().sources)
       .filter((s) => s.projectId === projectId)
-      .map((s) => s.record.doi ?? s.record.openalexId ?? s.record.title),
+      .map((s) => recordKey(s.record)),
   );
   const ids: string[] = [];
   for (const rec of records) {
-    const key = rec.doi ?? rec.openalexId ?? rec.title;
+    const key = recordKey(rec);
     if (existing.has(key)) continue;
+    existing.add(key);
     ids.push(S().addSource({ projectId, origin: "database", record: rec, folderId, approvedAt: at }));
   }
   if (ids.length) {
     S().log({ projectId, actor: "student", action: "source.saved", summary: `Approved and saved ${ids.length} source${ids.length === 1 ? "" : "s"} to the library. Checkpoint 1.` });
   }
-  // verify in the background, a few at a time
-  void runPool(ids, 3, (id) => verifySource(id).catch(() => undefined));
+  // verify in the background, a few at a time (resumed on the next load if the page closes first)
+  void runPool(ids, 3, verifyOnce);
   return ids;
 }
 
@@ -152,7 +203,7 @@ export async function explainSource(sourceId: string): Promise<void> {
   if (!src) return;
   const { text, origin } = checkText(src);
   if (!text) return;
-  const { summary } = await api.summary({ title: src.record.title, text, textOrigin: origin });
+  const { summary } = await api.summary({ title: src.record.title, ...textForCheck(text), textOrigin: origin });
   S().setSummary(sourceId, summary);
   S().log({
     projectId: src.projectId,
@@ -163,7 +214,37 @@ export async function explainSource(sourceId: string): Promise<void> {
   });
 }
 
+/**
+ * Checks a pasted reference list a few references per request, so every request
+ * finishes well inside the server's time limit and results arrive as they are
+ * ready. A failed request marks only its own references, never as "Not found".
+ */
+export async function verifyReferenceList(refs: string[], onBatch?: (items: BatchItem[], done: number) => void): Promise<BatchItem[]> {
+  const out: BatchItem[] = [];
+  for (let i = 0; i < refs.length; i += LIMITS.batchChunk) {
+    const chunk = refs.slice(i, i + LIMITS.batchChunk);
+    try {
+      const { results } = await api.verifyBatch(chunk);
+      out.push(...results);
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : "Lookup failed";
+      out.push(...chunk.map((raw) => ({ raw, parsed: parseReferenceText(raw), error: `Not checked: ${message}` })));
+    }
+    onBatch?.([...out], Math.min(i + LIMITS.batchChunk, refs.length));
+  }
+  return out;
+}
+
 /* ----------------------- Steps 5 and 6: verify and challenge --------------- */
+
+const UNCHECKED_LOG: Record<NonNullable<ClaimCheck["reason"]>, string> = {
+  no_text: "no text to check",
+  ai_unavailable: "AI unavailable",
+  rate_limited: "AI rate limit reached",
+  quote_not_in_source: "the AI's evidence was not a sentence of the source",
+  evidence_not_relevant: "the AI's evidence sentence was not about the claim",
+  invalid_ai_output: "the AI reply was malformed",
+};
 
 export async function checkClaim(projectId: string, claim: DraftClaim): Promise<void> {
   const state = S();
@@ -179,14 +260,14 @@ export async function checkClaim(projectId: string, claim: DraftClaim): Promise<
       check = { verdict: "unchecked", mode: "code", reason: "no_text", candidates: [], scopeFlags: [], quoteVerified: false, textOrigin: "none", checkedAt: new Date().toISOString() };
     } else {
       const citedAs = `${inTextLabel(src, project?.style ?? "apa")} "${src.record.title}"`;
-      ({ check } = await api.checkClaim({ claim: claim.text, citedAs, text, textOrigin: origin }));
+      ({ check } = await api.checkClaim({ claim: claim.text, citedAs, ...textForCheck(text), textOrigin: origin }));
     }
     S().setClaimCheck(projectId, claim.key, sid, check);
     S().log({
       projectId,
       actor: check.mode === "ai" ? "ai:skeptic" : "code:skeptic",
       action: "claim.checked",
-      summary: `"${claim.text.slice(0, 90)}${claim.text.length > 90 ? "…" : ""}" against ${shortRef(src)}: ${check.verdict.replace("_", " ")}${check.mode === "code" ? ` (${check.reason === "no_text" ? "no text to check" : "AI unavailable"})` : ""}.`,
+      summary: `"${claim.text.slice(0, 90)}${claim.text.length > 90 ? "…" : ""}" against ${shortRef(src)}${origin === "student_text" ? " (text the student pasted)" : ""}: ${check.verdict.replace("_", " ")}${check.reason ? ` (${UNCHECKED_LOG[check.reason]})` : ""}.`,
       model: check.model,
       meta: { verdict: check.verdict, quoteVerified: check.quoteVerified, claim: claim.key },
     });

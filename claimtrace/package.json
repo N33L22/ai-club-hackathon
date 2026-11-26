@@ -10,7 +10,12 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "demo:build": "tsx scripts/build-demo.mts",
-    "eval": "tsx scripts/eval.mts"
+    "eval": "tsx scripts/eval.mts",
+    "demo:samples": "tsx scripts/demo-samples.mts prepare",
+    "demo:record": "tsx scripts/demo-samples.mts record",
+    "eval:skeptic": "tsx scripts/eval-skeptic.mts",
+    "e2e": "node scripts/e2e.mjs",
+    "local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-local.ps1"
   },
   "dependencies": {
     "@citation-js/core": "0.7.21",

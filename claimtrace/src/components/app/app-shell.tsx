@@ -1,12 +1,14 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { resumePendingVerifications } from "@/lib/actions";
 import { useCurrentProject, useHydrated } from "@/lib/hooks";
 import { Sidebar } from "./sidebar";
+import { StepNav } from "./step-nav";
 import { WorkflowStepper } from "./workflow-stepper";
 
 function ShellSkeleton() {
@@ -38,6 +40,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const project = useCurrentProject();
   const [open, setOpen] = useState(false);
+
+  // finish reference checks that a closed or reloaded page left unfinished
+  useEffect(() => {
+    if (hydrated) resumePendingVerifications();
+  }, [hydrated]);
 
   if (!hydrated) return <ShellSkeleton />;
 
@@ -72,6 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </header>
         <main className="flex-1">{children}</main>
+        {project && <StepNav />}
       </div>
     </div>
   );

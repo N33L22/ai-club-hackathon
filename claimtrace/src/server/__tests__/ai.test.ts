@@ -83,6 +83,35 @@ describe("Skeptic with a mocked model", () => {
   });
 });
 
+describe("reasoning models", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.NVIDIA_API_KEY;
+    delete process.env.AI_EXTRA_BODY;
+    delete process.env.AI_MAX_TOKENS_SCALE;
+  });
+
+  it("sends the configured extra fields and a scaled token budget", async () => {
+    process.env.NVIDIA_API_KEY = "test-key";
+    process.env.AI_EXTRA_BODY = '{"chat_template_kwargs":{"enable_thinking":false}}';
+    process.env.AI_MAX_TOKENS_SCALE = "4";
+    const fetchMock = vi.fn().mockResolvedValue(reply('{"verdict":"not_supported","sentence":null,"quote":"","explanation":"x","issues":[]}'));
+    vi.stubGlobal("fetch", fetchMock);
+    const { checkClaim } = await loadSkeptic();
+    await checkClaim({ claim: "Teen depression rose after 2010.", citedAs: "", text: ABSTRACT, textOrigin: "abstract" });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(body.max_tokens).toBe(2000);
+  });
+
+  it("reads the answer after a thinking block", async () => {
+    vi.resetModules();
+    const { extractJson } = await import("../ai/client");
+    expect(extractJson('<think>Maybe {"verdict":"supported"}? No.</think>\n{"verdict":"overreach","sentence":3}')).toEqual({ verdict: "overreach", sentence: 3 });
+    expect(extractJson('Reasoning... {"draft":1} done.</think>{"verdict":"not_supported"}')).toEqual({ verdict: "not_supported" });
+  });
+});
+
 describe("Skeptic without a key", () => {
   it("stays Unchecked and does not call any API", async () => {
     delete process.env.NVIDIA_API_KEY;

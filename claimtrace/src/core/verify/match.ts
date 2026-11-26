@@ -22,17 +22,28 @@ function yearMatches(a: number | undefined, b: number | undefined): boolean | nu
   return Math.abs(a - b) <= THRESHOLDS.yearTolerance;
 }
 
-function firstAuthorMatch(input: ReferenceInput, record: ScholarlyRecord): { ok: boolean | null; note?: string } {
+/**
+ * ok: the first author matches (null when either side has no authors).
+ * inRecord: the student's first author is one of the record's authors (maybe not first).
+ */
+function firstAuthorMatch(input: ReferenceInput, record: ScholarlyRecord): { ok: boolean | null; inRecord: boolean; note?: string } {
   const want = input.authors?.[0]?.family;
-  if (!want || !record.authors.length) return { ok: null };
-  if (surnameMatch(want, record.authors[0].family)) return { ok: true };
+  if (!want || !record.authors.length) return { ok: null, inRecord: false };
+  if (surnameMatch(want, record.authors[0].family)) return { ok: true, inRecord: true };
   if (record.authors.some((a) => surnameMatch(want, a.family))) {
-    return { ok: false, note: `${want} is an author, but not the first author (the record lists ${record.authors[0].family} first)` };
+    return { ok: false, inRecord: true, note: `${want} is an author, but not the first author (the record lists ${record.authors[0].family} first)` };
   }
-  return { ok: false, note: `first author differs: you have ${want}, the record has ${record.authors[0].family}` };
+  return { ok: false, inRecord: false, note: `first author differs: you have ${want}, the record has ${record.authors[0].family}` };
 }
 
-/** Compare a structured reference (title/authors/year, maybe a DOI) with a database record. */
+/**
+ * Compare a structured reference (title/authors/year, maybe a DOI) with a database record.
+ *
+ * Same identity rule as pasted references: similar title words alone do not make
+ * two papers the same. Without a DOI, a Close match needs a matching author, or
+ * (when the reference gives no author) a near-identical title. Otherwise an
+ * invented reference could be "corrected" into an unrelated real paper.
+ */
 export function decideStructured(input: ReferenceInput, record: ScholarlyRecord, matchedByDoi: boolean): MatchDecision {
   const differences: string[] = [];
   const title = input.title ? titleSimilarity(input.title, record.title) : undefined;
@@ -71,7 +82,22 @@ export function decideStructured(input: ReferenceInput, record: ScholarlyRecord,
   if (title >= THRESHOLDS.titleMatch && author.ok !== false && year !== false) {
     return { status: "verified", scores, differences, score, reason: matchedByDoi ? "Matched by DOI; title, author and year agree." : "Title, first author and year match the record." };
   }
-  return { status: "close_match", scores, differences, score, reason: `Close match: ${differences.join("; ")}. Confirm this is the paper you mean.` };
+  const sameAuthors = author.ok === true || author.inRecord;
+  const identity =
+    matchedByDoi || sameAuthors || (title >= THRESHOLDS.titleMatch && (author.ok === null || year === true));
+  if (identity) {
+    return { status: "close_match", scores, differences, score, reason: `Close match: ${differences.join("; ") || "some details differ"}. Confirm this is the paper you mean.` };
+  }
+  return {
+    status: "not_found",
+    scores,
+    differences,
+    score,
+    reason:
+      author.ok === false
+        ? `No database record matches this reference. The closest, "${record.title}", is by different authors.`
+        : `No database record matches this reference closely enough. The closest is "${record.title}".`,
+  };
 }
 
 /** Compare a pasted reference string (e.g. copied from a chatbot) with a candidate record. */

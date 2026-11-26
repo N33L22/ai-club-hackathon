@@ -33,7 +33,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" data-scroll-behavior="smooth" className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} h-full`}>
       <body className="min-h-full bg-white font-sans text-ink-950">
         <TooltipProvider delayDuration={250}>{children}</TooltipProvider>
-        <Toaster position="bottom-right" richColors={false} closeButton />
+        {/* above the Previous / Next bar at the bottom of the workflow pages */}
+        <Toaster position="bottom-right" richColors={false} closeButton offset={{ bottom: 76, right: 24 }} mobileOffset={{ bottom: 72 }} />
       </body>
     </html>
   );

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { LIMITS } from "../config";
 import { extractClaims, type DocNode } from "../evidence/claims";
+import { judgeReply, prepareCheck } from "../evidence/judge";
 import { directQuoteIn, verifyQuote } from "../evidence/quote";
 import { rankSentences } from "../evidence/rank";
-import { detectScope } from "../evidence/scope";
+import { detectScope, magnitudes } from "../evidence/scope";
 import { checkSummaryPoints, keySentences } from "../evidence/summary-check";
+import { pastedTextMatch } from "../evidence/text-match";
+import { isNegated } from "../text/polarity";
 import { splitSentences } from "../text/sentences";
 
 const TWENGE = splitSentences(
@@ -57,6 +61,75 @@ describe("scope rules", () => {
   it("does not flag a careful paraphrase", () => {
     expect(detectScope("Heavier new-media use was associated with more reported mental health issues.", TWENGE)).toEqual([]);
   });
+  it("flags an effect size the source does not state (CT-29)", () => {
+    const flags = detectScope("Heavy social media use triples the risk of depression.", TWENGE, TWENGE.join(" "));
+    expect(flags.find((f) => f.kind === "magnitude")?.claimTerm).toBe("triples");
+    expect(magnitudes("a 50% increase, twice as likely, 2.5-fold")).toEqual(new Map([["x2", "twice"], ["x2.5", "2.5-fold"], ["50%", "50%"]]));
+    // the same size stated in the source is fine
+    expect(detectScope("Scores rose by 50% for girls.", ["Scores rose 50% vs 35% for girls and boys."]).some((f) => f.kind === "magnitude")).toBe(false);
+  });
+  it("flags a different population (CT-29)", () => {
+    const flags = detectScope("Social media use is linked to depression in UK children.", TWENGE, TWENGE.join(" "));
+    const pop = flags.find((f) => f.kind === "population");
+    expect(pop?.message).toBe("The claim is about UK children, but the source describes US adolescents.");
+    expect(detectScope("US adolescents who used new media were more likely to report mental health issues.", TWENGE, TWENGE.join(" ")).some((f) => f.kind === "population")).toBe(false);
+  });
+  it("hints at an opposite direction of finding", () => {
+    const flags = detectScope("Unemployment was linked to adolescent suicide rates.", ["Economic factors such as unemployment were not linked to depressive symptoms or suicide rates."]);
+    expect(flags.map((f) => f.kind)).toContain("polarity");
+  });
+});
+
+describe("negation", () => {
+  it("only counts negated findings", () => {
+    expect(isNegated("were not linked to depressive symptoms")).toBe(true);
+    expect(isNegated("moderate use is not intrinsically harmful")).toBe(true);
+    expect(isNegated("there was no significant association")).toBe(true);
+    expect(isNegated("compared with no use remained significantly associated")).toBe(false);
+    expect(isNegated("but not externalizing problems alone")).toBe(false);
+  });
+});
+
+/* CT-03: code must check that the AI's evidence is a whole sentence and about the claim */
+describe("evidence rules (the Skeptic's code half)", () => {
+  const ABSTRACT = TWENGE.join(" ");
+  const claim = "Smartphones caused the rise in teen depression.";
+  const prep = prepareCheck(claim, ABSTRACT);
+
+  it("accepts a whole sentence that is about the claim", () => {
+    const j = judgeReply(claim, prep, { verdict: "overreach", sentence: 3, quote: TWENGE[2] });
+    expect(j).toMatchObject({ verdict: "overreach", quoteVerified: true, evidence: { index: 2 } });
+  });
+  it("rejects a short fragment that merely exists in the source", () => {
+    const j = judgeReply(claim, prep, { verdict: "supported", sentence: null, quote: "mental health issues" });
+    expect(j).toMatchObject({ verdict: "unchecked", reason: "quote_not_in_source", quoteVerified: false });
+  });
+  it("rejects a sentence number pointing at a sentence that is not about the claim", () => {
+    const other = "Students who exercise more sleep better at night.";
+    const j = judgeReply(other, prepareCheck(other, ABSTRACT), { verdict: "supported", sentence: 1, quote: "" });
+    expect(j).toMatchObject({ verdict: "unchecked", reason: "evidence_not_relevant" });
+  });
+  it("accepts a substantial part of the exact sentence the AI named", () => {
+    const j = judgeReply(claim, prep, { verdict: "overreach", sentence: 3, quote: "which may account for the increases in depression and suicide" });
+    expect(j.verdict).toBe("overreach");
+  });
+  it("needs no evidence to say Not supported", () => {
+    expect(judgeReply(claim, prep, { verdict: "not_supported", sentence: null, quote: "" })).toMatchObject({ verdict: "not_supported", quoteVerified: false });
+  });
+  it("says when a long text was cut (CT-14)", () => {
+    const long = Array.from({ length: LIMITS.maxSentences + 20 }, (_, i) => `Sentence number ${i} reports a finding about adolescents.`).join(" ");
+    expect(prepareCheck(claim, long).truncated).toEqual({ checked: LIMITS.maxSentences, total: LIMITS.maxSentences + 20 });
+    expect(prepareCheck(claim, ABSTRACT).truncated).toBeNull();
+    expect(prepareCheck(claim, ABSTRACT.slice(0, 300), 900).truncated?.total).toBeGreaterThan(1);
+  });
+});
+
+describe("pasted text", () => {
+  it("warns when pasted text does not look like the paper", () => {
+    const record = { title: "Increases in depressive symptoms, suicide-related outcomes, and suicide rates among U.S. adolescents", abstract: TWENGE.join(" ") };
+    expect(pastedTextMatch(TWENGE[1], record).related).toBe(true);
+    expect(pastedTextMatch("Regular exercise improves sleep quality in older adults, according to this randomised trial.", record).related).toBe(false);
+  });
 });
 
 describe("summary grounding", () => {
@@ -74,6 +147,10 @@ describe("summary grounding", () => {
   });
   it("extracts key sentences without AI", () => {
     expect(keySentences(TWENGE, 2)).toHaveLength(2);
+  });
+  it("does not ground a point that reverses its sentence (CT-13)", () => {
+    const pts = checkSummaryPoints([{ text: "Adolescents who spent more time on new media were not linked to mental health issues.", sentences: [1] }], TWENGE);
+    expect(pts[0].grounded).toBe(false);
   });
 });
 

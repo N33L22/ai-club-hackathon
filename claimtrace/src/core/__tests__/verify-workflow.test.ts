@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { inTextLabel } from "../citation/csl";
+import { LABELS } from "../labels";
 import type { LibrarySource } from "../model";
+import { mergeDefined, recordKey } from "../records";
 import type { ClaimCheck, ScholarlyRecord, SourceVerification } from "../types";
 import { decideFreeText, decideStructured } from "../verify/match";
 import { parseReferenceText, splitReferenceList } from "../verify/reference-text";
-import { buildVerification } from "../verify/steps";
+import { buildVerification, unavailableVerification } from "../verify/steps";
 import { evaluateGate } from "../workflow/gate";
-import { claimLabel } from "../workflow/labels";
+import { claimLabel, sourceLabel } from "../workflow/labels";
 import { computeSourceMix } from "../workflow/source-mix";
 import { aiUseStatement } from "../workflow/statement";
 
@@ -36,6 +38,31 @@ describe("verifier: structured references", () => {
     const d = decideStructured({ doi: KELES.doi, title: "Instagram use doubles anxiety in teenagers: a meta-analysis" }, KELES, true);
     expect(d.status).toBe("not_found");
     expect(d.reason).toContain("different paper");
+  });
+
+  // CT-05: a BibTeX/RIS entry used to become a close match on title words alone
+  const KELLY: ScholarlyRecord = {
+    doi: "10.1016/j.eclinm.2018.12.005",
+    title: "Social Media Use and Adolescent Mental Health: Findings From the UK Millennium Cohort Study",
+    authors: [{ family: "Kelly" }, { family: "Zilanawala" }, { family: "Booker" }, { family: "Sacker" }],
+    year: 2018,
+    foundIn: ["crossref", "openalex"],
+  };
+  const fakeTitle = "Social media use and adolescent anxiety: findings from a national cohort";
+  it("never turns an invented entry into a different real paper", () => {
+    const d = decideStructured({ title: fakeTitle, authors: [{ family: "Thompson" }, { family: "Okafor" }], year: 2021 }, KELLY, false);
+    expect(d.status).toBe("not_found");
+    expect(d.reason).toContain("different authors");
+  });
+  it("still offers a close match when an author matches", () => {
+    expect(decideStructured({ title: fakeTitle, authors: [{ family: "Kelly" }], year: 2018 }, KELLY, false).status).toBe("close_match");
+    expect(decideStructured({ title: fakeTitle, authors: [{ family: "Sacker" }], year: 2018 }, KELLY, false).status).toBe("close_match");
+  });
+  it("accepts a near-identical title without authors as a close match only with the year", () => {
+    expect(decideStructured({ title: KELLY.title.replace("Findings From", "Findings from a"), year: 2015 }, KELLY, false).status).toBe("close_match");
+  });
+  it("lets a DOI carry a close match whatever the authors", () => {
+    expect(decideStructured({ doi: KELLY.doi, title: fakeTitle, authors: [{ family: "Thompson" }] }, KELLY, true).status).toBe("close_match");
   });
 });
 
@@ -89,22 +116,50 @@ describe("verification steps", () => {
     expect(v.status).toBe("retracted");
     expect(v.steps.map((s) => s.state)).toEqual(["pass", "pass", "fail"]);
   });
+  it("says when a retraction check covered only one database", () => {
+    const rec: ScholarlyRecord = { ...KELES, foundIn: ["crossref"] };
+    const v = buildVerification(decideStructured({ doi: rec.doi }, rec, true), rec, { failed: ["openalex"] });
+    expect(v.status).toBe("verified");
+    expect(v.unavailable).toEqual(["openalex"]);
+    expect(v.steps[2]).toMatchObject({ state: "warn", title: "Partly checked" });
+    expect(v.steps[2].detail).toContain("OpenAlex could not be reached");
+  });
+  it("never reports an outage as Not found (CT-06)", () => {
+    const v = unavailableVerification(["openalex"]);
+    expect(v.status).toBe("unavailable");
+    expect(sourceLabel(v)).toBe("unavailable");
+    expect(v.reason).toContain("not marked Not found");
+  });
 });
 
 const verified: SourceVerification = { status: "verified", steps: [], reason: "", checkedAt: "" };
-const check = (verdict: ClaimCheck["verdict"]): ClaimCheck => ({ verdict, mode: "ai", quoteVerified: verdict !== "unchecked", candidates: [], scopeFlags: [], textOrigin: "abstract", checkedAt: "" });
+const check = (verdict: ClaimCheck["verdict"], textOrigin: ClaimCheck["textOrigin"] = "abstract"): ClaimCheck => ({ verdict, mode: "ai", quoteVerified: verdict !== "unchecked", candidates: [], scopeFlags: [], textOrigin, checkedAt: "" });
 
 describe("claim labels", () => {
   it("lets reference problems outrank the text check", () => {
     expect(claimLabel([{ verification: { ...verified, status: "retracted" } }], [check("supported")])).toBe("retracted");
     expect(claimLabel([undefined], [])).toBe("not_found");
     expect(claimLabel([{ verification: { ...verified, status: "close_match" } }], [check("supported")])).toBe("close_match");
-    expect(claimLabel([{ verification: { ...verified, status: "close_match", confirmedByStudent: true } }], [check("supported")])).toBe("verified");
+    expect(claimLabel([{ verification: { ...verified, status: "close_match", confirmedByStudent: true } }], [check("supported")])).toBe("supported");
   });
   it("uses the most severe verdict across cited sources", () => {
     expect(claimLabel([{ verification: verified }, { verification: verified }], [check("supported"), check("overreach")])).toBe("overreach");
     expect(claimLabel([{ verification: verified }], [check("unchecked")])).toBe("unchecked");
     expect(claimLabel([{ verification: verified }], [undefined])).toBe("pending");
+  });
+  it("labels support from pasted text differently, and makes it need an acknowledgement (CT-04)", () => {
+    const label = claimLabel([{ verification: verified }], [check("supported", "student_text")]);
+    expect(label).toBe("supported_own_text");
+    expect(LABELS[label].gate).toBe("acknowledge");
+    expect(claimLabel([{ verification: verified }], [check("supported")])).toBe("supported");
+  });
+  it("keeps a claim citing an unchecked reference out of Supported", () => {
+    expect(claimLabel([{ verification: { ...verified, status: "unavailable" } }], [check("supported")])).toBe("unavailable");
+    expect(claimLabel([{ verification: { ...verified, status: "unavailable" } }], [check("overreach")])).toBe("overreach");
+  });
+  it("never shares the reference label Verified with claims", () => {
+    expect(LABELS.verified.claim).toBe("");
+    expect(LABELS.supported.source).toBe("");
   });
 });
 
@@ -112,7 +167,7 @@ describe("export gate", () => {
   it("needs decisions, acknowledgements and a sign-off", () => {
     const at = "2026-11-25T10:00:00Z";
     const claims = [
-      { key: "a", label: "verified" as const },
+      { key: "a", label: "supported" as const },
       { key: "b", label: "overreach" as const },
       { key: "c", label: "unchecked" as const },
     ];
@@ -130,9 +185,9 @@ describe("export gate", () => {
     expect(g.needDecision).toBe(1);
   });
   it("blocks a direct quote until its page is given", () => {
-    const g = evaluateGate([{ key: "q", label: "verified", missingPage: true }], true);
+    const g = evaluateGate([{ key: "q", label: "supported", missingPage: true }], true);
     expect(g).toMatchObject({ ready: false, needDecision: 1, missingPages: 1 });
-    expect(evaluateGate([{ key: "q", label: "verified", missingPage: false }], true).ready).toBe(true);
+    expect(evaluateGate([{ key: "q", label: "supported", missingPage: false }], true).ready).toBe(true);
   });
   it("requires a reason to keep a flagged claim", () => {
     const g = evaluateGate([{ key: "b", label: "overreach", decision: { action: "accept_anyway", reason: "  ", label: "overreach", at: "" } }], true);
@@ -140,33 +195,65 @@ describe("export gate", () => {
   });
 });
 
+const noRefs = { total: 0, verified: 0, confirmedClose: 0, closeMatch: 0, notFound: 0, retracted: 0, unavailable: 0, studentAdded: 0, pending: 0 };
+const noClaims = { total: 0, supported: 0, supportedOwnText: 0, overreach: 0, notSupported: 0, unchecked: 0, refNotFound: 0, refUnconfirmed: 0, refStudentAdded: 0, refUnavailable: 0, pending: 0, sample: 0 };
+const noDecisions = { edited: 0, replaced: 0, removed: 0, acceptedAnyway: 0, acknowledged: 0 };
+
 describe("AI-use statement", () => {
   it("reports AI use, check results and the student's responses", () => {
     const s = aiUseStatement({
-      model: "meta/llama-3.3-70b-instruct",
+      model: "nvidia/nemotron-3-ultra-550b-a55b",
       provider: "NVIDIA NIM",
       uses: { scout: 1, skeptic: 5, assistant: 0 },
       firstUse: "2026-11-25T09:00:00Z",
       lastUse: "2026-11-25T11:00:00Z",
-      refs: { total: 7, verified: 4, closeMatch: 1, notFound: 1, retracted: 1, studentAdded: 0 },
-      claims: { total: 7, verified: 3, overreach: 1, notSupported: 0, unchecked: 2, refIssues: 1, sample: 0 },
-      decisions: { edited: 1, replaced: 1, removed: 0, acceptedAnyway: 0, acknowledged: 2 },
+      refs: { ...noRefs, total: 7, verified: 4, closeMatch: 1, notFound: 1, retracted: 1 },
+      claims: { ...noClaims, total: 7, supported: 3, overreach: 1, unchecked: 2, refNotFound: 1 },
+      decisions: { ...noDecisions, edited: 1, replaced: 1, acknowledged: 2 },
     });
-    expect(s).toContain("meta/llama-3.3-70b-instruct");
+    expect(s).toContain("nvidia/nemotron-3-ultra-550b-a55b");
     expect(s).toContain("on 25 November 2026");
     expect(s).toContain("1 retracted");
-    expect(s).toContain("Of my 7 cited claims, 3 were supported by the source text, 1 went beyond the source, 2 could not be checked and 1 cites a reference");
+    expect(s).toContain("Of my 7 cited claims, 3 were supported by the source text, 1 went beyond the source, 2 could not be checked and 1 cites a reference that was not found");
     expect(s).toContain("edited 1 claim");
     expect(s).toContain("my own");
   });
-  it("says when no generative AI was used", () => {
+  it("counts a confirmed close match once, not also as verified (CT-11)", () => {
+    const s = aiUseStatement({ uses: { scout: 0, skeptic: 0, assistant: 0 }, refs: { ...noRefs, total: 3, verified: 2, confirmedClose: 1 }, claims: noClaims, decisions: noDecisions });
+    expect(s).toContain("3 references against Crossref and OpenAlex (2 verified and 1 close match I confirmed after comparing the details)");
+  });
+  it("discloses support that came from pasted text, outages and samples", () => {
     const s = aiUseStatement({
-      uses: { scout: 0, skeptic: 0, assistant: 0 },
-      refs: { total: 0, verified: 0, closeMatch: 0, notFound: 0, retracted: 0, studentAdded: 0 },
-      claims: { total: 0, verified: 0, overreach: 0, notSupported: 0, unchecked: 0, sample: 0 },
-      decisions: { edited: 0, replaced: 0, removed: 0, acceptedAnyway: 0, acknowledged: 0 },
+      uses: { scout: 0, skeptic: 3, assistant: 0 },
+      refs: { ...noRefs, total: 2, verified: 1, unavailable: 1 },
+      claims: { ...noClaims, total: 4, supported: 1, supportedOwnText: 1, refUnavailable: 1, refUnconfirmed: 1, sample: 2 },
+      decisions: noDecisions,
     });
-    expect(s).toContain("no generative AI was used");
+    expect(s).toContain("1 that could not be checked because a database was unavailable");
+    expect(s).toContain("2 were supported by the source text (1 of them by text I pasted myself rather than a database abstract)");
+    expect(s).toContain("1 cites a reference the databases could not check at the time");
+    expect(s).toContain("1 cites a close match I have not confirmed");
+    expect(s).toContain("2 results shown during the session were labelled samples");
+  });
+  it("says when no generative AI was used", () => {
+    const s = aiUseStatement({ uses: { scout: 0, skeptic: 0, assistant: 0 }, refs: noRefs, claims: noClaims, decisions: noDecisions });
+    expect(s).toContain("no live generative AI was used");
+  });
+});
+
+describe("records", () => {
+  it("keeps known fields when a re-check returns fewer (CT-10)", () => {
+    const stored: ScholarlyRecord = { ...KELES, abstract: "A known abstract with enough words to be kept as it is.", abstractSource: "openalex" };
+    const recheck: ScholarlyRecord = { ...KELES, abstract: undefined, abstractSource: undefined, foundIn: ["crossref"] };
+    const merged = mergeDefined(stored, recheck);
+    expect(merged.abstract).toBe(stored.abstract);
+    expect(merged.abstractSource).toBe("openalex");
+    expect(merged.foundIn).toEqual(["crossref"]);
+  });
+  it("gives one key per record", () => {
+    expect(recordKey({ doi: "10.1/AbC", title: "x" })).toBe("doi:10.1/abc");
+    expect(recordKey({ openalexId: "W1", title: "x" })).toBe("oa:W1");
+    expect(recordKey({ title: "A Title!" })).toBe(recordKey({ title: "a title" }));
   });
 });
 

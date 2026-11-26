@@ -1,0 +1,17 @@
+# Dependencies: every package installs its own (npm ci)
+node_modules/
+
+# Builds and local caches
+.next/
+out/
+*.tsbuildinfo
+
+# Secrets: keys live in .env.local on each machine and in the host's settings
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini

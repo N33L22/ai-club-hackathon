@@ -12,6 +12,7 @@ import type {
   StoredClaimChecks,
   StoredDecision,
 } from "@/core/model";
+import { mergeDefined } from "@/core/records";
 import type { ClaimCheck, GroundedSummary, ScholarlyRecord, SourceVerification } from "@/core/types";
 
 /**
@@ -45,6 +46,7 @@ export interface Bundle {
   sources: LibrarySource[];
   folders: Folder[];
   checks?: Record<string, StoredClaimChecks>;
+  decisions?: Record<string, StoredDecision>;
   audit?: AuditEvent[];
 }
 
@@ -128,6 +130,7 @@ export const useStore = create<Store>()(
           sources: { ...s.sources, ...Object.fromEntries(b.sources.map((x) => [x.id, x])) },
           folders: { ...s.folders, ...Object.fromEntries(b.folders.map((x) => [x.id, x])) },
           checks: { ...s.checks, ...(b.checks ?? {}) },
+          decisions: { ...s.decisions, ...(b.decisions ?? {}) },
           audit: [...s.audit, ...(b.audit ?? [])].slice(-AUDIT_CAP),
           currentProjectId: b.project.id,
         }));
@@ -147,8 +150,9 @@ export const useStore = create<Store>()(
         set((s) => {
           const src = s.sources[id];
           if (!src) return s;
-          // keep the student's own entry for student-added sources; otherwise adopt the database record
-          const merged = record && src.origin === "database" ? { ...src.record, ...record } : src.record;
+          // keep the student's own entry for student-added sources; otherwise adopt the database record,
+          // without letting a partial answer (e.g. no abstract because OpenAlex was down) erase known fields
+          const merged = record && src.origin === "database" ? mergeDefined(src.record, record) : src.record;
           return { sources: { ...s.sources, [id]: { ...src, verification, record: merged } } };
         });
       },

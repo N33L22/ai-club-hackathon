@@ -59,6 +59,12 @@ export interface BatchItem extends Partial<VerifyResponse> {
 export interface HealthResponse {
   ok: boolean;
   ai: { configured: boolean; model: string; provider: string };
+  sources?: {
+    openalexKey: boolean;
+    contactEmail: boolean;
+    /** Databases refusing requests right now (for example a used-up daily budget). */
+    blocked: Array<{ service: string; until: string; reason: string; message: string }>;
+  };
   version: string;
 }
 

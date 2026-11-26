@@ -4,11 +4,14 @@ import {
   ArrowUpRight,
   Check,
   FileText,
+  FlaskConical,
+  Layers,
   Loader2,
   PencilLine,
   Quote,
   RefreshCw,
   RotateCcw,
+  Scale,
   Search,
   Sparkles,
   TriangleAlert,
@@ -22,14 +25,17 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { shortRef } from "@/core/citation/csl";
+import { LIMITS } from "@/core/config";
+import { SCOPE_TITLES } from "@/core/evidence/scope";
 import { LABELS } from "@/core/labels";
 import type { LibrarySource, Project } from "@/core/model";
 import { stripRetractedPrefix } from "@/core/text/normalize";
 import type { ClaimCheck } from "@/core/types";
 import { decisionApplies } from "@/core/workflow/gate";
 import { sourceLabel } from "@/core/workflow/labels";
-import { confirmCloseMatch, decide, logIntent, undoDecision } from "@/lib/actions";
+import { decide, logIntent, undoDecision } from "@/lib/actions";
 import type { ResolvedClaim } from "@/lib/hooks";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -37,11 +43,32 @@ import { ClaimPipeline } from "./claim-pipeline";
 
 const REASON_TEXT: Record<NonNullable<ClaimCheck["reason"]>, string> = {
   no_text: "There is no abstract or pasted text for this source, so the claim could not be compared with it.",
-  ai_unavailable: "The AI check is not available, so code could only rank the closest sentences. It never marks a claim Verified on its own.",
-  rate_limited: "The AI request budget was used up. Try again in a minute; nothing is marked Verified meanwhile.",
-  quote_not_in_source: "The AI proposed a supporting sentence that is not in the source text, so code rejected it.",
+  ai_unavailable: "The AI check is not available, so code could only rank the closest sentences. Code never marks a claim Supported on its own.",
+  rate_limited: "The AI request budget was used up. Try again in a minute; nothing is marked Supported meanwhile.",
+  quote_not_in_source: "The AI's evidence was not a whole sentence of the source text, so code rejected it.",
+  evidence_not_relevant: "The AI pointed to a real sentence, but it shares too little with the claim to count as evidence, so code rejected it.",
   invalid_ai_output: "The AI reply was not in the required format, so it was discarded.",
 };
+
+const EVIDENCE_CAPTION: Record<string, string> = {
+  supported: "Supporting sentence",
+  overreach: "What the source says",
+  not_supported: "Closest sentence in the source",
+};
+
+/** A short search question from a long claim: whole words, at most LIMITS.searchQuestionChars. */
+function searchQuestion(text: string): string {
+  const t = text.replace(/["“”]/g, "").trim();
+  if (t.length <= LIMITS.searchQuestionChars) return t;
+  return t.slice(0, LIMITS.searchQuestionChars).replace(/\s+\S*$/, "");
+}
+
+function sampleText(check: ClaimCheck): string {
+  if (check.sample?.provenance === "recorded") {
+    return `Sample: recorded from a live ${check.sample.model ?? "AI"} run on ${new Date(check.sample.at).toLocaleDateString(undefined, { dateStyle: "medium" })}. Not a live check.`;
+  }
+  return "Sample prepared by Team 6 for the demo. Not a live AI check; the evidence sentence is real and was confirmed by code.";
+}
 
 function Evidence({ check, source }: { check: ClaimCheck; source: LibrarySource }) {
   const origin = check.textOrigin === "student_text" ? "the text you pasted" : "the abstract";
@@ -50,6 +77,7 @@ function Evidence({ check, source }: { check: ClaimCheck; source: LibrarySource 
       {check.evidence && (
         <figure className="relative rounded-xl bg-gradient-to-br from-ink-50 to-white p-4 ring-1 ring-ink-200/70">
           <Quote className="absolute top-3 right-3 size-4 text-ink-200" aria-hidden="true" />
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-ink-400 uppercase">{EVIDENCE_CAPTION[check.verdict] ?? "Sentence in the source"}</p>
           <blockquote className="pr-6 font-serif text-[15.5px] leading-relaxed text-ink-800 italic">&ldquo;{check.evidence.text}&rdquo;</blockquote>
           <figcaption className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-500">
             <span>
@@ -57,11 +85,21 @@ function Evidence({ check, source }: { check: ClaimCheck; source: LibrarySource 
             </span>
             {check.quoteVerified && (
               <span className="inline-flex items-center gap-1 font-medium text-trace-700">
-                <Check className="size-3" strokeWidth={3} /> Found in the source by code
+                <Check className="size-3" strokeWidth={3} /> Whole sentence found in the source by code
               </span>
             )}
           </figcaption>
         </figure>
+      )}
+
+      {check.textOrigin === "student_text" && check.verdict === "supported" && (
+        <p className="flex gap-2 rounded-lg bg-lime-50 px-3 py-2 text-[12.5px] leading-relaxed text-lime-900 ring-1 ring-lime-300 ring-inset">
+          <FileText className="mt-0.5 size-3.5 shrink-0 text-lime-700" />
+          <span>
+            This evidence comes from text you pasted, not from a database abstract. Acknowledge it only if the text is copied from the cited source. The integrity report shows
+            your supervisor where it came from.
+          </span>
+        </p>
       )}
 
       {!check.evidence && check.candidates.length > 0 && check.verdict === "unchecked" && (
@@ -86,7 +124,7 @@ function Evidence({ check, source }: { check: ClaimCheck; source: LibrarySource 
             <li key={f.kind} className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-900 ring-1 ring-amber-200 ring-inset">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
               <span>
-                <span className="font-medium">{f.kind === "causal" ? "Causal wording" : f.kind === "certainty" ? "Stronger certainty" : "Wider population"}:</span> {f.message}
+                <span className="font-medium">{SCOPE_TITLES[f.kind]}:</span> {f.message}
               </span>
             </li>
           ))}
@@ -106,7 +144,7 @@ function Evidence({ check, source }: { check: ClaimCheck; source: LibrarySource 
       {check.explanation && (
         <p className="flex gap-2 text-[13px] leading-relaxed text-ink-600">
           <span className="mt-px inline-flex h-5 shrink-0 items-center gap-1 rounded-md bg-violet-50 px-1.5 text-[11px] font-medium text-violet-700 ring-1 ring-violet-200 ring-inset">
-            <Sparkles className="size-3" /> AI reasoning
+            <Sparkles className="size-3" /> {check.mode === "sample" ? "Sample reasoning" : "AI reasoning"}
           </span>
           <span>{check.explanation}</span>
         </p>
@@ -114,10 +152,23 @@ function Evidence({ check, source }: { check: ClaimCheck; source: LibrarySource 
 
       {check.reason && <p className="text-[12.5px] leading-relaxed text-ink-500">{REASON_TEXT[check.reason]}</p>}
 
-      <p className="text-[11.5px] text-ink-400">
-        {check.mode === "ai" ? `Judged by the Skeptic (${check.model}); quote re-checked by code` : check.mode === "sample" ? "Sample result, not a live AI check" : "Code-only check"} ·{" "}
-        {new Date(check.checkedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-      </p>
+      {check.truncated && (
+        <p className="text-[12.5px] leading-relaxed text-ink-500">
+          Long text: only the first {check.truncated.checked} of about {check.truncated.total} sentences were checked. If the evidence is further on, paste the relevant
+          passage instead.
+        </p>
+      )}
+
+      {check.mode === "sample" ? (
+        <p className="flex items-start gap-1.5 rounded-lg bg-violet-50/60 px-3 py-2 text-[12px] leading-relaxed text-violet-900 ring-1 ring-violet-200 ring-inset">
+          <FlaskConical className="mt-0.5 size-3.5 shrink-0 text-violet-600" /> {sampleText(check)}
+        </p>
+      ) : (
+        <p className="text-[11.5px] text-ink-400">
+          {check.mode === "ai" ? `Judged by the Skeptic (${check.model}); evidence re-checked by code` : "Code-only check"} ·{" "}
+          {new Date(check.checkedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+        </p>
+      )}
     </div>
   );
 }
@@ -178,6 +229,7 @@ export function ClaimCard({
   const gate = LABELS[claim.label].gate;
   const resolved = decisionApplies(claim.label, claim.decision);
   const page = project.quotePages?.[claim.key] ?? "";
+  const isSample = claim.checks.some((c) => c?.mode === "sample");
 
   return (
     <motion.article
@@ -194,7 +246,25 @@ export function ClaimCard({
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
         <div className="flex flex-wrap items-center gap-2">
           <TrustBadge label={claim.label} size="lg" />
+          {isSample && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11.5px] font-medium text-violet-700 ring-1 ring-violet-200 ring-inset">
+              <FlaskConical className="size-3" /> Sample
+            </span>
+          )}
           <span className="font-mono text-[11px] text-ink-400">Claim {index + 1}</span>
+          {claim.sourceIds.length > 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 rounded-full bg-ink-50 px-2 py-0.5 text-[11.5px] text-ink-600 ring-1 ring-ink-200 ring-inset">
+                  <Layers className="size-3" /> {claim.sourceIds.length} sources
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-64 leading-relaxed">
+                This claim cites {claim.sourceIds.length} sources, so it shows the most serious result among them: if one source supports it and another does not, it is Not
+                supported. Each source&apos;s result is shown below.
+              </TooltipContent>
+            </Tooltip>
+          )}
           {resolved && (
             <span className="inline-flex items-center gap-1 rounded-full bg-ink-100 px-2 py-0.5 text-[11.5px] font-medium text-ink-700">
               <Check className="size-3" /> {claim.decision?.action === "acknowledge" ? "Acknowledged" : "Kept with a reason"}
@@ -250,8 +320,16 @@ export function ClaimCard({
               {sl === "close_match" && src && (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900 ring-1 ring-amber-200 ring-inset">
                   {src.verification?.reason}
-                  <Button size="xs" variant="outline" className="ml-auto" onClick={() => confirmCloseMatch(sid)}>
-                    <Check /> Confirm the match
+                  <Button size="xs" variant="outline" className="ml-auto" onClick={() => onOpenSource(sid)}>
+                    <Scale /> Compare and confirm
+                  </Button>
+                </div>
+              )}
+              {sl === "unavailable" && src && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-[12.5px] leading-relaxed text-sky-900 ring-1 ring-sky-200 ring-inset">
+                  {src.verification?.reason}
+                  <Button size="xs" variant="outline" className="ml-auto" onClick={() => onOpenSource(sid)}>
+                    <RefreshCw /> Check the reference again
                   </Button>
                 </div>
               )}
@@ -283,7 +361,7 @@ export function ClaimCard({
           variant="outline"
           onClick={() => {
             logIntent(project.id, claim, "replace");
-            router.push(`/app/search?q=${encodeURIComponent(claim.text)}`);
+            router.push(`/app/search?q=${encodeURIComponent(searchQuestion(claim.text))}`);
           }}
         >
           <Search /> Find a better source
@@ -301,7 +379,7 @@ export function ClaimCard({
           <Button size="sm" variant="secondary" onClick={() => decide(project.id, claim, claim.label, "acknowledge")}>
             <Check /> Acknowledge
           </Button>
-        ) : claim.label === "verified" ? (
+        ) : claim.label === "supported" ? (
           <span className="inline-flex items-center gap-1 text-[12.5px] font-medium text-trace-700">
             <ArrowUpRight className="size-3.5" /> No action needed
           </span>

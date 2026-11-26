@@ -66,9 +66,11 @@ const count = (label) =>
 
 console.log(`ClaimTrace end-to-end test against ${BASE}`);
 
-await step("landing page renders", async () => {
+await step("landing page renders, with its replay labelled as a sample", async () => {
   await page.goto(BASE, { waitUntil: "networkidle2" });
   await waitText("traced");
+  await waitText("sample · scripted replay");
+  if ((await text()).includes("live demo data")) throw new Error('the scripted replay is still called "live demo data"');
   await shot("01-landing");
 });
 
@@ -79,12 +81,24 @@ await step("demo project opens from the landing page", async () => {
   await shot("02-overview");
 });
 
+/** Which branch of a step ran, printed next to its result. */
+const notes = [];
+const note = (s) => notes.push(s);
+
 await step("search: plan, approve, save two sources", async () => {
   await page.goto(`${BASE}/app/search`, { waitUntil: "networkidle2" });
   await click("Plan the search");
   await waitText("Approve plan and search");
   await click("Approve plan and search");
-  await waitText("real records from OpenAlex", 60000);
+  // either real records, or (OpenAlex's daily budget used up) a clear explanation that stays on the page
+  await page.waitForFunction(() => /real records from OpenAlex|The search did not run/.test(document.body.innerText), { timeout: 60000 });
+  if ((await text()).includes("the search did not run")) {
+    const t = await text();
+    if (!t.includes("free openalex key")) throw new Error("the search failed without saying how to fix it");
+    note("search: OpenAlex refused (daily budget used up); the page explained why and how to fix it");
+    await shot("03-search-degraded");
+    return;
+  }
   const boxes = await page.$$("button[role=checkbox]");
   if (boxes.length < 2) throw new Error("fewer than two selectable results");
   await boxes[0].evaluate((b) => b.click());
@@ -103,8 +117,16 @@ await step("library: paste a chatbot reference list and add it", async () => {
     "Kahneman, D., & Tversky, A. (1979). Prospect theory: An analysis of decision under risk. Econometrica, 47(2), 263-291.\n\nMartinez, L., & Chen, W. (2022). Social media detox and adolescent sleep quality: A randomized controlled trial of 1,200 students. Journal of Youth Digital Wellbeing, 8(2), 45-61.",
   );
   await click("Check references");
-  await waitText("No matching record", 60000);
+  // the invented reference is Not found when both databases answered, and Couldn't check when one did not
+  await page.waitForFunction(() => /No matching record|could not be reached/.test(document.body.innerText), { timeout: 60000 });
   const t = await text();
+  const health = await page.evaluate(() => fetch("/api/health").then((r) => r.json()));
+  const openalexDown = health.sources?.blocked?.some((b) => b.service === "OpenAlex");
+  if (t.includes("could not be reached")) {
+    if (!openalexDown) throw new Error("a reference was marked Couldn't check although no database is blocked");
+    if (t.includes("no matching record")) throw new Error("an unfinished check was reported as Not found");
+    note("reference list: OpenAlex down, so the invented reference was Couldn't check, not Not found");
+  }
   if (!t.includes("verified")) throw new Error("the real reference was not verified");
   await shot("04-reference-list");
   await click("Add 1");
@@ -122,6 +144,19 @@ await step("review: check all claims", async () => {
   if (!n) throw new Error("no 'Check N claims' button");
   await waitText(`Checked ${n} claim`, 120000);
   await shot("05-review", true);
+});
+
+await step("review: labelled samples stand in when the AI is offline", async () => {
+  const health = await page.evaluate(() => fetch("/api/health").then((r) => r.json()));
+  if (health.ai.configured) {
+    console.log("       (AI is live: samples are not offered, skipped)");
+    return;
+  }
+  await click("Show sample results");
+  await waitText("not a live ai check");
+  const t = await text();
+  if (!t.includes("supported") || !t.includes("overreach")) throw new Error("sample verdicts did not appear");
+  await shot("05b-review-samples", true);
 });
 
 await step("review: resolve every flag (checkpoint 2)", async () => {
@@ -159,9 +194,13 @@ await step("export: sign off unlocks export (checkpoint 3)", async () => {
   await shot("06-export");
 });
 
-await step("integrity report renders", async () => {
+await step("integrity report renders, with every saved source checked", async () => {
   await page.goto(`${BASE}/app/report`, { waitUntil: "networkidle2" });
   await waitText("References and verification");
+  // sources saved from search are verified in the background; a reload must not leave them unchecked
+  await page.waitForFunction(() => !document.body.innerText.includes("still being checked"), { timeout: 20000 }).catch(() => {
+    throw new Error("a saved source was never verified (the statement still says 'still being checked')");
+  });
   await shot("07-report", true);
 });
 
@@ -172,12 +211,15 @@ await step("audit log recorded the journey", async () => {
   await shot("08-audit");
 });
 
-const real = errors.filter((e) => !/Download the React DevTools/.test(e));
+// when OpenAlex's budget is used up, the search request's 503 is the expected, explained outcome
+const degraded = notes.some((n) => n.includes("OpenAlex"));
+const real = errors.filter((e) => !/Download the React DevTools/.test(e) && !(degraded && /status of 503/.test(e)));
 if (real.length) {
   failed++;
   console.log(`  FAIL browser console errors:\n    ${[...new Set(real)].slice(0, 8).join("\n    ")}`);
 } else console.log("  ok   no browser console errors");
 
 await browser.close();
+for (const n of notes) console.log(`  note ${n}`);
 console.log(failed ? `\n${failed} step(s) failed` : "\nAll steps passed");
 process.exit(failed ? 1 : 0);

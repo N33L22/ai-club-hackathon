@@ -15,6 +15,8 @@ export function sourceLabel(v: SourceVerification | undefined): TrustLabel {
       return "retracted";
     case "student_added":
       return "student_added";
+    case "unavailable":
+      return "unavailable";
     default:
       return "pending";
   }
@@ -22,7 +24,11 @@ export function sourceLabel(v: SourceVerification | undefined): TrustLabel {
 
 const VERDICT_SEVERITY: Record<ClaimVerdict, number> = { not_supported: 3, overreach: 2, unchecked: 1, supported: 0 };
 
-/** The most severe verdict across all sources cited by the claim. */
+/**
+ * The most severe verdict across all sources cited by the claim. A claim that
+ * cites two sources is only as strong as its weakest link: if one source
+ * supports it and the other does not, the claim shows "Not supported".
+ */
 export function worstVerdict(checks: Array<ClaimCheck | undefined>): ClaimVerdict | undefined {
   if (!checks.length || checks.some((c) => !c)) return undefined;
   return (checks as ClaimCheck[]).map((c) => c.verdict).sort((a, b) => VERDICT_SEVERITY[b] - VERDICT_SEVERITY[a])[0];
@@ -31,7 +37,7 @@ export function worstVerdict(checks: Array<ClaimCheck | undefined>): ClaimVerdic
 /**
  * Precedence: a problem with the reference itself outranks what the text says.
  * not found > retracted > pending > close match > not supported > overreach
- * > student-added > unchecked > verified.
+ * > couldn't check > student-added > unchecked > supported (your text) > supported.
  */
 export function claimLabel(
   sources: Array<{ verification?: SourceVerification } | undefined>,
@@ -47,7 +53,10 @@ export function claimLabel(
   if (!verdict) return "pending";
   if (verdict === "not_supported") return "not_supported";
   if (verdict === "overreach") return "overreach";
+  if (labels.includes("unavailable")) return "unavailable";
   if (labels.includes("student_added")) return "student_added";
   if (verdict === "unchecked") return "unchecked";
-  return "verified";
+  // every cited source supports the claim: say so differently when the evidence is text the student pasted
+  if (checks.some((c) => c?.textOrigin === "student_text")) return "supported_own_text";
+  return "supported";
 }

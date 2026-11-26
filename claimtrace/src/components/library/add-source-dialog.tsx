@@ -17,7 +17,7 @@ import { stripRetractedPrefix } from "@/core/text/normalize";
 import type { ReferenceInput } from "@/core/types";
 import { splitReferenceList } from "@/core/verify/reference-text";
 import { sourceLabel } from "@/core/workflow/labels";
-import { addEnteredReference, addWebSource, runPool } from "@/lib/actions";
+import { addEnteredReference, addWebSource, runPool, verifyReferenceList } from "@/lib/actions";
 import { api, ApiError, type BatchItem } from "@/lib/api";
 import { parseImport } from "@/lib/citation";
 import { authorLine } from "../search/result-card";
@@ -26,10 +26,31 @@ interface Checked extends BatchItem {
   include: boolean;
 }
 
-function ResultsTable({ items, setItems, onAdd, adding }: { items: Checked[]; setItems: (f: (x: Checked[]) => Checked[]) => void; onAdd: () => void; adding: boolean }) {
+/** Tick only references that resolved to a record; "Not found" and "Not yet verified" stay unticked. */
+const usable = (it: Pick<BatchItem, "verification">) => Boolean(it.verification && ["verified", "close_match", "retracted"].includes(it.verification.status));
+
+function ResultsTable({
+  items,
+  setItems,
+  onAdd,
+  adding,
+  progress,
+}: {
+  items: Checked[];
+  setItems: (f: (x: Checked[]) => Checked[]) => void;
+  onAdd: () => void;
+  adding: boolean;
+  progress: { done: number; total: number } | null;
+}) {
   const chosen = items.filter((i) => i.include).length;
   return (
     <div className="mt-4">
+      {progress && (
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] text-ink-600" role="status">
+          <Loader2 className="size-3.5 animate-spin text-ink-400" /> Checked {progress.done} of {progress.total}. Crossref allows about one search a second, so long lists take a
+          little while.
+        </div>
+      )}
       <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
         {items.map((it, i) => {
           const label = it.verification ? sourceLabel(it.verification) : "not_found";
@@ -64,7 +85,9 @@ function ResultsTable({ items, setItems, onAdd, adding }: { items: Checked[]; se
         })}
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-[12.5px] text-ink-500">References that were not found stay unticked. You can still add them; they will carry the Not found label.</p>
+        <p className="text-[12.5px] text-ink-500">
+          References that were not found, or not yet verified because a database did not answer, stay unticked. You can still add them; they keep their label.
+        </p>
         <Button onClick={onAdd} disabled={!chosen || adding}>
           {adding ? <Loader2 className="animate-spin" /> : <Check />} Add {chosen}
         </Button>
@@ -79,6 +102,7 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
   const [list, setList] = useState("");
   const [items, setItems] = useState<Checked[]>([]);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [web, setWeb] = useState({ title: "", author: "", year: "", url: "", site: "", accessed: new Date().toISOString().slice(0, 10) });
 
   const reset = () => {
@@ -112,13 +136,18 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
       return;
     }
     setBusy(true);
+    setProgress({ done: 0, total: refs.length });
     try {
-      const { results } = await api.verifyBatch(refs);
-      setItems(results.map((r) => ({ ...r, include: Boolean(r.verification && ["verified", "close_match", "retracted"].includes(r.verification.status)) })));
+      // a few references per request: results appear as they are ready
+      await verifyReferenceList(refs, (results, done) => {
+        setItems((prev) => results.map((r, i) => ({ ...r, include: prev[i]?.raw === r.raw ? prev[i].include : usable(r) })));
+        setProgress({ done, total: refs.length });
+      });
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Could not check the references");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -135,7 +164,7 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
           const raw = [r.authors?.map((a) => a.family).join(", "), r.year && `(${r.year})`, r.title, r.doi && `doi:${r.doi}`].filter(Boolean).join(" ");
           try {
             const res = await api.verify(r);
-            out[i] = { raw, parsed: r, ...res, include: res.verification.status !== "not_found" };
+            out[i] = { raw, parsed: r, ...res, include: usable(res) };
           } catch (e) {
             out[i] = { raw, parsed: r, error: e instanceof ApiError ? e.message : "Lookup failed", include: false };
           }
@@ -246,7 +275,7 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
                 </div>
               </>
             ) : (
-              <ResultsTable items={items} setItems={setItems} onAdd={addChecked} adding={busy} />
+              <ResultsTable items={items} setItems={setItems} onAdd={addChecked} adding={busy} progress={progress} />
             )}
           </TabsContent>
 
@@ -259,7 +288,7 @@ export function AddSourceDialog({ projectId, folderId, open, onOpenChange }: { p
                 <input type="file" accept=".bib,.ris,.txt" className="sr-only" disabled={busy} onChange={(e) => e.target.files?.[0] && void importFile(e.target.files[0])} />
               </label>
             ) : (
-              <ResultsTable items={items} setItems={setItems} onAdd={addChecked} adding={busy} />
+              <ResultsTable items={items} setItems={setItems} onAdd={addChecked} adding={busy} progress={progress} />
             )}
           </TabsContent>
 

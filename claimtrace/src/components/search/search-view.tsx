@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Bot, Check, Hand, Loader2, Plus, Search, Sparkles, Wrench, X } from "lucide-react";
+import { ArrowRight, Bot, Check, Hand, Loader2, Plus, Search, Sparkles, TriangleAlert, Wrench, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,6 +8,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, Page, PageHeader, Panel } from "@/components/app/page";
 import { RequireProject } from "@/components/app/require-project";
+import { LabelGuide } from "@/components/trust/label-guide";
+import { TrustBadge } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,16 +17,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import type { TrustLabel } from "@/core/labels";
 import type { Project } from "@/core/model";
+import { recordKey } from "@/core/records";
 import type { ScholarlyRecord, SearchPlan } from "@/core/types";
+import { sourceLabel } from "@/core/workflow/labels";
 import { approvePlan, generatePlan, saveRecords } from "@/lib/actions";
 import { api, ApiError } from "@/lib/api";
 import { useProjectFolders, useProjectSources } from "@/lib/hooks";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { ResultCard } from "./result-card";
+import { ResultCard, SEARCH_RESULT_LABEL } from "./result-card";
 
-const keyOf = (r: ScholarlyRecord) => r.doi ?? r.openalexId ?? r.title;
+const keyOf = recordKey;
+
+/** What the Search page's labels mean: the results' own label, the AI's plan, and what saving leads to. */
+const SEARCH_GUIDE = [
+  {
+    key: "result",
+    chip: <TrustBadge label="pending" context="source" title={SEARCH_RESULT_LABEL.title} withTooltip={false} />,
+    meaning: SEARCH_RESULT_LABEL.meaning,
+  },
+  {
+    key: "ai",
+    chip: <TrustBadge label="ai_reasoning" title="AI suggestion" withTooltip={false} />,
+    meaning: "Written by the AI: the Scout's search plan. Nothing is searched or saved until you edit or approve it.",
+  },
+];
+const SEARCH_GUIDE_LABELS: TrustLabel[] = ["verified", "close_match", "retracted"];
 
 function PlanEditor({ plan, onChange, onApprove, busy }: { plan: SearchPlan; onChange: (p: SearchPlan) => void; onApprove: () => void; busy: boolean }) {
   const [draft, setDraft] = useState("");
@@ -157,12 +177,14 @@ function SearchInner({ project }: { project: Project }) {
   const [planning, setPlanning] = useState(false);
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<ScholarlyRecord[] | null>(null);
+  const [searchError, setSearchError] = useState<{ message: string; quota: boolean } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [folderId, setFolderId] = useState<string>("none");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const library = useProjectSources(project.id);
   const folders = useProjectFolders(project.id);
-  const inLibrary = useMemo(() => new Set(library.map((s) => s.record.doi ?? s.record.openalexId ?? s.record.title)), [library]);
+  const inLibrary = useMemo(() => new Set(library.map((s) => recordKey(s.record))), [library]);
+  const libraryLabels = useMemo(() => new Map(library.map((s) => [recordKey(s.record), sourceLabel(s.verification)])), [library]);
   const abortRef = useRef<AbortController | null>(null);
   const autoPlanned = useRef(false);
 
@@ -192,6 +214,7 @@ function SearchInner({ project }: { project: Project }) {
     abortRef.current = ctrl;
     setSearching(true);
     setResults(null);
+    setSearchError(null);
     setSelected(new Set());
     try {
       const { results } = await api.search(
@@ -201,7 +224,12 @@ function SearchInner({ project }: { project: Project }) {
       setResults(results);
       useStore.getState().log({ projectId: project.id, actor: "system", action: "search.run", summary: `OpenAlex returned ${results.length} records for ${p.queries.length} quer${p.queries.length === 1 ? "y" : "ies"}.` });
     } catch (e) {
-      if ((e as Error).name !== "AbortError") toast.error("Search failed", { description: e instanceof ApiError ? e.message : "Please try again." });
+      if ((e as Error).name !== "AbortError") {
+        const message = e instanceof ApiError ? e.message : "The search could not reach the server. Please try again.";
+        // the message stays on the page: a toast is easy to miss, and the reason matters
+        setSearchError({ message, quota: e instanceof ApiError && e.code === "upstream_quota" });
+        toast.error("Search failed", { description: message });
+      }
     } finally {
       setSearching(false);
     }
@@ -273,6 +301,25 @@ function SearchInner({ project }: { project: Project }) {
       </div>
 
       <section className="mt-8" aria-live="polite">
+        {searchError && !searching && (
+          <Panel className="flex gap-3 border-amber-200 bg-amber-50/60 p-4" role="alert">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />
+            <div className="min-w-0 text-[13px] leading-relaxed text-amber-950">
+              <p className="font-semibold">The search did not run.</p>
+              <p className="mt-0.5">{searchError.message}</p>
+              {searchError.quota && (
+                <p className="mt-1.5 text-amber-900">
+                  Nothing is wrong with your plan. Whoever runs this ClaimTrace server can add a free OpenAlex key (see{" "}
+                  <Link href="/app/settings" className="font-medium underline underline-offset-2">
+                    Settings
+                  </Link>
+                  ). Meanwhile you can still add sources by DOI or as a reference list: Crossref keeps answering, and anything it cannot finish shows Not yet verified,
+                  never Not found.
+                </p>
+              )}
+            </div>
+          </Panel>
+        )}
         {searching && (
           <div className="space-y-3">
             {Array.from({ length: 4 }, (_, i) => (
@@ -294,6 +341,7 @@ function SearchInner({ project }: { project: Project }) {
                 <Switch checked={onlyOpen} onCheckedChange={setOnlyOpen} /> Open access only
               </label>
             </div>
+            <LabelGuide labels={SEARCH_GUIDE_LABELS} context="source" extra={SEARCH_GUIDE} className="mb-3" />
             {shown.length === 0 ? (
               <Panel>
                 <EmptyState icon={<Search />} title="No records matched" description="Try broader queries, remove the year limits, or include reviews." />
@@ -306,6 +354,7 @@ function SearchInner({ project }: { project: Project }) {
                     record={r}
                     index={i}
                     inLibrary={inLibrary.has(keyOf(r))}
+                    libraryLabel={libraryLabels.get(keyOf(r))}
                     selected={selected.has(keyOf(r))}
                     onToggle={() =>
                       setSelected((s) => {

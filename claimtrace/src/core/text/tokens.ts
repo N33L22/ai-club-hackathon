@@ -43,8 +43,33 @@ export function contentWords(s: string): string[] {
   return words(s).filter((w) => w.length > 1 && !STOPWORDS.has(w));
 }
 
+/**
+ * Words that findings use interchangeably ("teen" and "adolescent", "rose" and
+ * "increased"). Folding them together lets the evidence checks see that
+ * "teen depression rose" and "adolescents' depression increased" are about the
+ * same thing. Used only by stems() (evidence ranking, relevance and grounding),
+ * never by the Verifier's title and author matching, which must stay literal.
+ */
+const CONCEPTS: Record<string, string> = {};
+for (const [canonical, forms] of Object.entries({
+  adolesc: ["teen", "teenag", "adolesc", "youth", "igen"],
+  increas: ["rise", "rose", "rising", "risen", "increas", "grow", "grew", "growth", "climb"],
+  decreas: ["decreas", "declin", "drop", "dropp", "fall", "fell", "reduc", "reduct"],
+  child: ["child", "children", "kid"],
+  associ: ["associ", "correl", "link", "relat"],
+  anxi: ["anxi", "anxious"],
+  girl: ["girl", "femal"],
+  boy: ["boy", "male"],
+})) {
+  for (const f of forms) CONCEPTS[f] = canonical;
+}
+
+/** Content-word stems for evidence matching, with interchangeable findings words folded together. */
 export function stems(s: string): string[] {
-  return contentWords(s).map(stem);
+  return contentWords(s).map((w) => {
+    const st = stem(w);
+    return CONCEPTS[st] ?? st;
+  });
 }
 
 export function numbersIn(s: string): string[] {

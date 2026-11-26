@@ -19,7 +19,11 @@ interface Scenario {
   note?: { tone: "amber" | "rose"; text: string };
 }
 
-/* Real results from the demo project (live Crossref/OpenAlex lookups and real abstract sentences). */
+/*
+ * A scripted replay, labelled "Sample" on screen. The reference results are the
+ * demo project's real Crossref/OpenAlex results and the evidence sentences are
+ * real abstract sentences; the support verdicts are illustrative, not live AI output.
+ */
 const SCENARIOS: Scenario[] = [
   {
     claim: "Smartphones and social media caused the rise in teenage depression",
@@ -45,7 +49,7 @@ const SCENARIOS: Scenario[] = [
       { name: "Retraction", state: "pass", text: "Not retracted" },
       { name: "Supports", state: "pass", text: "Supported" },
     ],
-    label: "verified",
+    label: "supported",
     evidence: "The magnitude of association between social media use and depressive symptoms was larger for girls than for boys.",
   },
   {
@@ -84,7 +88,7 @@ const ICON: Record<S | "run", { icon: typeof CircleCheck; cls: string; chip: str
   run: { icon: LoaderCircle, cls: "animate-spin text-ink-400", chip: "border-ink-200 bg-white text-ink-500" },
 };
 
-/** The landing page's live demo: one claim travelling through the checks. */
+/** The landing page's sample replay: one claim travelling through the checks (scripted, labelled Sample). */
 export function LiveCheck() {
   const reduce = useReducedMotion();
   const [i, setI] = useState(0);
@@ -111,7 +115,10 @@ export function LiveCheck() {
             <span className="size-2.5 rounded-full bg-ink-200" />
             <span className="size-2.5 rounded-full bg-ink-200" />
             <span className="size-2.5 rounded-full bg-ink-200" />
-            <span className="ml-2 font-mono text-[11px] text-ink-400">claim check · live demo data</span>
+            <span className="ml-2 font-mono text-[11px] text-ink-400">claim check</span>
+            <span className="rounded-full bg-violet-50 px-1.5 py-px font-mono text-[10px] font-medium tracking-wide text-violet-700 uppercase ring-1 ring-violet-200 ring-inset">
+              Sample · scripted replay
+            </span>
           </div>
           <AnimatePresence mode="wait">
             <motion.span key={`${i}-${phase >= 4}`} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} transition={{ duration: 0.25 }}>
@@ -163,7 +170,7 @@ export function LiveCheck() {
                       <Quote className="absolute top-3 right-3 size-4 text-ink-200" />
                       <blockquote className="pr-6 font-serif text-[15px] leading-relaxed text-ink-800 italic">&ldquo;{sc.evidence}&rdquo;</blockquote>
                       <figcaption className="mt-2 flex items-center gap-1 text-[11.5px] font-medium text-trace-700">
-                        <Check className="size-3" strokeWidth={3} /> Sentence found in the abstract by code
+                        <Check className="size-3" strokeWidth={3} /> A real sentence of the paper&apos;s abstract
                       </figcaption>
                     </motion.figure>
                   )}
@@ -188,8 +195,8 @@ export function LiveCheck() {
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center justify-between border-t border-ink-100 bg-ink-25 px-5 py-3 text-[12px] text-ink-500">
-          <span>Code checks the reference · the AI judges support · you decide</span>
+        <div className="flex items-center justify-between gap-3 border-t border-ink-100 bg-ink-25 px-5 py-3 text-[12px] text-ink-500">
+          <span>Sample, not a live check: real reference results from the demo project; the support verdicts are illustrative.</span>
           <span className="flex gap-1.5" aria-hidden="true">
             {SCENARIOS.map((_, k) => (
               <span key={k} className={cn("h-1.5 rounded-full transition-all duration-500", k === i ? "w-5 bg-ink-950" : "w-1.5 bg-ink-200")} />

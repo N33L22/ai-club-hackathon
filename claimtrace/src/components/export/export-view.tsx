@@ -16,7 +16,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ import { sourceLabel } from "@/core/workflow/labels";
 import { revokeSignOff, signOff } from "@/lib/actions";
 import { exportFormat, formatReferences, type FormattedEntry } from "@/lib/citation";
 import { useAiStatus, useGate, useProjectClaims, useProjectSources } from "@/lib/hooks";
-import { download, orderedSources, slug, statementInput } from "@/lib/statement-data";
+import { download, orderedSources, slug, statementInput, verificationNotes } from "@/lib/statement-data";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +63,7 @@ function GateRow({ done, title, detail, href }: { done: boolean; title: string; 
   );
 }
 
-function CopyDownload({ text, filename, disabled, label = "Copy" }: { text: string; filename: string; disabled: boolean; label?: string }) {
+function CopyDownload({ text, filename, disabled = false, label = "Copy" }: { text: string; filename: string; disabled?: boolean; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex gap-2">
@@ -101,7 +101,10 @@ function Export({ project }: { project: Project }) {
   const locked = !gate.ready;
   const prereqsDone = gate.pending === 0 && gate.needDecision === 0 && gate.needAck === 0;
 
-  const list = useMemo(() => orderedSources(sources, claims, includeUncited), [sources, claims, includeUncited]);
+  const citedCount = useMemo(() => orderedSources(sources, claims, false).length, [sources, claims]);
+  // nothing cited yet: the reference list is the whole library, so it is never empty by surprise
+  const allSources = includeUncited || citedCount === 0;
+  const list = useMemo(() => orderedSources(sources, claims, allSources), [sources, claims, allSources]);
   // results are keyed by request, so a stale list never shows and no state is reset inside the effect
   const requestKey = `${style}|${list.map((s) => `${s.id}:${s.verification?.status ?? ""}`).join(",")}`;
   useEffect(() => {
@@ -122,11 +125,14 @@ function Export({ project }: { project: Project }) {
     [project, sources, claims, audit, ai],
   );
   const statement = project.statementOverride ?? generated;
-  const referencesText = (entries ?? []).map((e) => e.text).join("\n\n");
+  const notes = verificationNotes(list);
+  const referencesList = (entries ?? []).map((e) => e.text).join("\n\n");
+  // labels travel with the file: unverified references are listed after the reference list
+  const referencesText = referencesList ? `${referencesList}\n\n---\n${notes}\n` : "";
   const draftText = useMemo(
-    () => `${project.title}\n\n${docToText(project.doc, (id) => inTextLabel(byId.get(id), style, numbers.get(id)))}\n\nReferences\n\n${referencesText}\n\nAI-use statement\n\n${statement}\n`,
+    () => `${project.title}\n\n${docToText(project.doc, (id) => inTextLabel(byId.get(id), style, numbers.get(id)))}\n\nReferences\n\n${referencesList}\n\nAI-use statement\n\n${statement}\n\n---\n${notes}\n`,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [project.doc, project.title, style, referencesText, statement],
+    [project.doc, project.title, style, referencesList, statement, notes],
   );
 
   return (
@@ -134,7 +140,7 @@ function Export({ project }: { project: Project }) {
       <PageHeader
         eyebrow="Step 7 · Decide and export · checkpoints 2 and 3"
         title="Export"
-        description="Export unlocks once every claim is checked, every flag has your decision, and you sign off. You stay the author of record."
+        description="Copy your reference list (APA 7 by default) and your AI-use statement at any time. The final files unlock once every claim is checked, every flag has your decision, and you sign off. You stay the author of record."
         actions={
           <Button asChild variant="outline">
             <Link href="/app/report">
@@ -159,7 +165,7 @@ function Export({ project }: { project: Project }) {
             </motion.span>
             <div>
               <p className="text-[20px] font-semibold tracking-[-0.02em] text-ink-950">{gate.ready ? "Export unlocked" : "Export is locked"}</p>
-              <p className="text-[13px] text-ink-500">{gate.ready ? `Signed off by ${project.signOff?.name}` : "Complete the checklist to unlock it."}</p>
+              <p className="text-[13px] text-ink-500">{gate.ready ? `Signed off by ${project.signOff?.name}` : "Complete the checklist to unlock the final files."}</p>
             </div>
           </div>
           <ul className="relative divide-y divide-ink-100 px-6 pt-3">
@@ -170,7 +176,12 @@ function Export({ project }: { project: Project }) {
               detail={gate.needDecision ? `${gate.needDecision} need a decision (fix, replace or keep with a reason)${gate.missingPages ? `, including ${gate.missingPages} quote${gate.missingPages === 1 ? "" : "s"} without a page` : ""}` : "No open flags"}
               href="/app/review"
             />
-            <GateRow done={gate.needAck === 0} title="Unchecked claims acknowledged" detail={gate.needAck ? `${gate.needAck} to acknowledge` : "Nothing left to acknowledge"} href="/app/review" />
+            <GateRow
+              done={gate.needAck === 0}
+              title="Partly checked claims acknowledged"
+              detail={gate.needAck ? `${gate.needAck} to acknowledge (unchecked, supported by your own text, student-added or not yet verified)` : "Nothing left to acknowledge"}
+              href="/app/review"
+            />
             <GateRow done={Boolean(project.signOff)} title="You signed off" detail={project.signOff ? `${project.signOff.name}, ${new Date(project.signOff.at).toLocaleString()}` : "Checkpoint 3: confirm you reviewed every claim"} />
           </ul>
           <div className="relative border-t border-ink-100 bg-ink-25 p-6">
@@ -221,7 +232,7 @@ function Export({ project }: { project: Project }) {
               </TabsList>
               {locked && (
                 <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-500">
-                  <Lock className="size-3.5" /> Preview only
+                  <Lock className="size-3.5" /> Files unlock after sign-off
                 </span>
               )}
             </div>
@@ -241,7 +252,7 @@ function Export({ project }: { project: Project }) {
                   </SelectContent>
                 </Select>
                 <label className="flex items-center gap-2 text-[13px] text-ink-600">
-                  <Switch checked={includeUncited} onCheckedChange={setIncludeUncited} /> Include uncited sources
+                  <Switch checked={allSources} onCheckedChange={setIncludeUncited} disabled={citedCount === 0} /> Include uncited sources
                 </label>
                 {style !== project.style && (
                   <Button size="xs" variant="ghost" onClick={() => updateProject(project.id, { style })}>
@@ -249,7 +260,10 @@ function Export({ project }: { project: Project }) {
                   </Button>
                 )}
               </div>
-              <ol className={cn("max-h-[420px] space-y-3 overflow-y-auto pr-1", locked && "select-none")}>
+              {citedCount === 0 && sources.length > 0 && (
+                <p className="mb-3 text-[12.5px] text-ink-500">Nothing in your draft cites a source yet, so the list shows every source in your library.</p>
+              )}
+              <ol className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
                 {entries === null
                   ? Array.from({ length: 4 }, (_, i) => <li key={i} className="shimmer h-12 rounded-lg" />)
                   : entries.map((e, i) => {
@@ -257,14 +271,17 @@ function Export({ project }: { project: Project }) {
                       const label = sourceLabel(src?.verification);
                       return (
                         <motion.li key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="group flex items-start gap-3">
-                          <div className="min-w-0 flex-1 text-[13.5px] leading-relaxed text-ink-800 [&_i]:italic" dangerouslySetInnerHTML={{ __html: e.html }} />
-                          {label !== "verified" && <TrustBadge label={label} context="source" size="sm" />}
+                          <div className="min-w-0 flex-1 text-[13.5px] leading-relaxed text-ink-800 wrap-anywhere [&_i]:italic" dangerouslySetInnerHTML={{ __html: e.html }} />
+                          <TrustBadge label={label} context="source" size="sm" />
                         </motion.li>
                       );
                     })}
               </ol>
-              <div className="mt-4 flex justify-end">
-                <CopyDownload text={referencesText} filename={`${slug(project.title)}-references.txt`} disabled={locked} />
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="min-w-0 flex-1 basis-56 text-[12px] leading-relaxed text-ink-500">
+                  {locked ? "Not signed off yet. " : ""}The copied list ends with a Reference checks note naming every reference that is not verified, so labels travel with it.
+                </p>
+                <CopyDownload text={referencesText} filename={`${slug(project.title)}-references.txt`} />
               </div>
             </TabsContent>
 
@@ -281,7 +298,7 @@ function Export({ project }: { project: Project }) {
                 ) : (
                   <span className="text-[12px] text-ink-400">You can edit it; edits are yours to stand behind.</span>
                 )}
-                <CopyDownload text={statement} filename={`${slug(project.title)}-ai-use-statement.txt`} disabled={locked} />
+                <CopyDownload text={statement} filename={`${slug(project.title)}-ai-use-statement.txt`} />
               </div>
             </TabsContent>
 
@@ -320,17 +337,6 @@ function Export({ project }: { project: Project }) {
               </Link>
             </TabsContent>
           </Tabs>
-          <AnimatePresence>
-            {locked && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent"
-                aria-hidden="true"
-              />
-            )}
-          </AnimatePresence>
         </Panel>
       </div>
     </Page>

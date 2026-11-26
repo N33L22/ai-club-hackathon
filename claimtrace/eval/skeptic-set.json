@@ -1,0 +1,25 @@
+{
+  "description": "Labelled claims for the Skeptic (does the source support the claim?). Source texts are the real OpenAlex abstracts of the demo project's papers (src/lib/demo-data.json). Written by Team 6 before any live run; expected verdicts follow the Skeptic's own definitions in src/server/ai/prompts.ts.",
+  "items": [
+    { "id": "T1", "source": "demo-src-twenge", "kind": "paraphrase", "expected": "supported", "claim": "Depressive symptoms and suicide rates among US adolescents increased between 2010 and 2015, especially among girls." },
+    { "id": "T2", "source": "demo-src-twenge", "kind": "causal", "expected": "overreach", "claim": "Social media use caused the increase in adolescent depression after 2010." },
+    { "id": "T3", "source": "demo-src-twenge", "kind": "negation", "expected": "not_supported", "claim": "Economic factors such as unemployment were strongly linked to adolescent suicide rates." },
+    { "id": "T4", "source": "demo-src-twenge", "kind": "certainty", "expected": "overreach", "claim": "This study proves that time on new media explains the rise in teen suicide." },
+    { "id": "T5", "source": "demo-src-twenge", "kind": "different_finding", "expected": "not_supported", "claim": "Adolescents who play sports report lower rates of obesity." },
+    { "id": "R1", "source": "demo-src-riehm", "kind": "paraphrase", "expected": "supported", "claim": "In a cohort of 6,595 US adolescents, using social media for more than three hours a day was associated with internalizing problems." },
+    { "id": "R2", "source": "demo-src-riehm", "kind": "magnitude", "expected": "overreach", "claim": "Using social media for more than six hours a day triples the risk of internalizing problems in adolescents." },
+    { "id": "R3", "source": "demo-src-riehm", "kind": "different_finding", "expected": "not_supported", "claim": "Social media use was consistently associated with externalizing problems in adolescents." },
+    { "id": "R4", "source": "demo-src-riehm", "kind": "population", "expected": "overreach", "claim": "UK adolescents who use social media for more than three hours a day are at heightened risk of internalizing problems." },
+    { "id": "R5", "source": "demo-src-riehm", "kind": "generalisation", "expected": "overreach", "claim": "Social media use puts all young people at heightened risk of mental health problems." },
+    { "id": "K1", "source": "demo-src-kelly", "kind": "paraphrase", "expected": "supported", "claim": "In the UK Millennium Cohort Study, greater social media use was related to poor sleep and low self-esteem." },
+    { "id": "K2", "source": "demo-src-kelly", "kind": "causal", "expected": "overreach", "claim": "Social media use causes depression in UK teenagers through online harassment." },
+    { "id": "K3", "source": "demo-src-kelly", "kind": "opposite_direction", "expected": "not_supported", "claim": "The association between social media use and depressive symptoms was larger for boys than for girls." },
+    { "id": "K4", "source": "demo-src-kelly", "kind": "number", "expected": "supported", "claim": "Among girls, five or more hours of daily social media use was linked to a 50% increase in depressive symptom scores compared with one to three hours." },
+    { "id": "Ke1", "source": "demo-src-keles", "kind": "paraphrase", "expected": "supported", "claim": "A systematic review found that all domains of social media use correlated with depression, anxiety and psychological distress in adolescents." },
+    { "id": "Ke2", "source": "demo-src-keles", "kind": "certainty", "expected": "overreach", "claim": "The review established that social media use definitely harms adolescents' mental health." },
+    { "id": "Ke3", "source": "demo-src-keles", "kind": "different_finding", "expected": "not_supported", "claim": "Most of the studies in the review were randomised controlled trials." },
+    { "id": "P1", "source": "demo-src-przybylski", "kind": "paraphrase", "expected": "supported", "claim": "In a large sample of English adolescents, the links between digital-screen time and mental well-being followed quadratic functions." },
+    { "id": "P2", "source": "demo-src-przybylski", "kind": "negation", "expected": "not_supported", "claim": "Moderate use of digital technology was found to be harmful to adolescents' well-being." },
+    { "id": "P3", "source": "demo-src-przybylski", "kind": "generalisation", "expected": "overreach", "claim": "Digital technology use is beneficial for the mental health of all children." }
+  ]
+}

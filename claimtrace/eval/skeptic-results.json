@@ -1,0 +1,232 @@
+{
+  "ranAt": "2026-11-25T18:29:36.293Z",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "total": 20,
+  "correct": 19,
+  "unchecked": 1,
+  "falseSupport": 0,
+  "avgSeconds": 3.9,
+  "byExpected": {
+    "supported": {
+      "total": 6,
+      "correct": 6
+    },
+    "overreach": {
+      "total": 8,
+      "correct": 7
+    },
+    "not_supported": {
+      "total": 6,
+      "correct": 6
+    }
+  },
+  "mistakes": [
+    {
+      "ref": "Ke2 (certainty)",
+      "expected": "overreach",
+      "got": "unchecked"
+    }
+  ],
+  "note": "Development result: the model setup was chosen by comparing four NVIDIA-hosted setups on this same set (eval/skeptic-model-comparison.md). The prompt and the evidence rules were not changed after seeing the results.",
+  "rows": [
+    {
+      "id": "T1",
+      "kind": "paraphrase",
+      "expected": "supported",
+      "got": "supported",
+      "evidence": 1,
+      "flags": [],
+      "ms": 4027
+    },
+    {
+      "id": "T2",
+      "kind": "causal",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 2,
+      "flags": [
+        "causal"
+      ],
+      "ms": 6145
+    },
+    {
+      "id": "T3",
+      "kind": "negation",
+      "expected": "not_supported",
+      "got": "not_supported",
+      "evidence": 4,
+      "flags": [
+        "polarity"
+      ],
+      "ms": 2553
+    },
+    {
+      "id": "T4",
+      "kind": "certainty",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 3,
+      "flags": [
+        "certainty"
+      ],
+      "ms": 4292
+    },
+    {
+      "id": "T5",
+      "kind": "different_finding",
+      "expected": "not_supported",
+      "got": "not_supported",
+      "flags": [],
+      "ms": 3552
+    },
+    {
+      "id": "R1",
+      "kind": "paraphrase",
+      "expected": "supported",
+      "got": "supported",
+      "evidence": 10,
+      "flags": [],
+      "ms": 4274
+    },
+    {
+      "id": "R2",
+      "kind": "magnitude",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 10,
+      "flags": [
+        "magnitude"
+      ],
+      "ms": 4450
+    },
+    {
+      "id": "R3",
+      "kind": "different_finding",
+      "expected": "not_supported",
+      "got": "not_supported",
+      "evidence": 9,
+      "flags": [],
+      "ms": 4020
+    },
+    {
+      "id": "R4",
+      "kind": "population",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 11,
+      "flags": [
+        "population"
+      ],
+      "ms": 4505
+    },
+    {
+      "id": "R5",
+      "kind": "generalisation",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 11,
+      "flags": [
+        "generalisation"
+      ],
+      "ms": 5458
+    },
+    {
+      "id": "K1",
+      "kind": "paraphrase",
+      "expected": "supported",
+      "got": "supported",
+      "evidence": 7,
+      "flags": [],
+      "ms": 1676
+    },
+    {
+      "id": "K2",
+      "kind": "causal",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 1,
+      "flags": [
+        "causal"
+      ],
+      "ms": 6208
+    },
+    {
+      "id": "K3",
+      "kind": "opposite_direction",
+      "expected": "not_supported",
+      "got": "not_supported",
+      "evidence": 5,
+      "flags": [],
+      "ms": 3047
+    },
+    {
+      "id": "K4",
+      "kind": "number",
+      "expected": "supported",
+      "got": "supported",
+      "evidence": 6,
+      "flags": [],
+      "ms": 2204
+    },
+    {
+      "id": "Ke1",
+      "kind": "paraphrase",
+      "expected": "supported",
+      "got": "supported",
+      "evidence": 5,
+      "flags": [],
+      "ms": 2779
+    },
+    {
+      "id": "Ke2",
+      "kind": "certainty",
+      "expected": "overreach",
+      "got": "unchecked",
+      "reason": "evidence_not_relevant",
+      "flags": [
+        "certainty"
+      ],
+      "ms": 4628
+    },
+    {
+      "id": "Ke3",
+      "kind": "different_finding",
+      "expected": "not_supported",
+      "got": "not_supported",
+      "evidence": 3,
+      "flags": [],
+      "ms": 4640
+    },
+    {
+      "id": "P1",
+      "kind": "paraphrase",
+      "expected": "supported",
+      "got": "supported",
+      "evidence": 2,
+      "flags": [],
+      "ms": 3189
+    },
+    {
+      "id": "P2",
+      "kind": "negation",
+      "expected": "not_supported",
+      "got": "not_supported",
+      "evidence": 4,
+      "flags": [
+        "polarity"
+      ],
+      "ms": 2837
+    },
+    {
+      "id": "P3",
+      "kind": "generalisation",
+      "expected": "overreach",
+      "got": "overreach",
+      "evidence": 4,
+      "flags": [
+        "generalisation"
+      ],
+      "ms": 3232
+    }
+  ]
+}

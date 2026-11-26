@@ -1,8 +1,8 @@
 "use client";
 
-import { Cpu, Database, Download, FlaskConical, Landmark, Scale, ShieldCheck, Trash2 } from "lucide-react";
+import { CircleAlert, CircleCheck, Cpu, Database, Download, FlaskConical, Globe, Landmark, Scale, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { Page, PageHeader, Panel, PanelHeader } from "@/components/app/page";
 import { TrustBadge } from "@/components/trust/trust-badge";
@@ -18,23 +18,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { THRESHOLDS } from "@/core/config";
-import { LABELS, type TrustLabel } from "@/core/labels";
-import { useAiStatus } from "@/lib/hooks";
-import { download } from "@/lib/statement-data";
+import { LIMITS, THRESHOLDS } from "@/core/config";
+import { labelMeaning, type TrustLabel } from "@/core/labels";
+import { useHealth } from "@/lib/hooks";
+import { exportProjectFile, importProjectFile, parseProjectFile } from "@/lib/project-file";
+import { download, slug } from "@/lib/statement-data";
 import { storedBytes, useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import evaluation from "@/lib/eval-results.json";
 
 const LIMITATIONS = [
   ["Abstracts are missing for many papers", "OpenAlex has abstracts for roughly half of all works. Without text, claims stay Unchecked unless you paste text you have read."],
   ["Paywalled full text is not read", "Support checks use the abstract or your pasted text, never a paper the tool cannot legally access."],
-  ["The AI can misjudge support", "Every evidence sentence is re-checked by code, and you see the evidence and decide. Verified means the sentence was found, not that the claim is true."],
-  ["Free AI tier limits", "NVIDIA's free tier allows about 40 requests a minute (community-reported). Results are cached; when the budget runs out, claims show Unchecked."],
+  ["The AI can misjudge support", "Code accepts the AI's evidence only if it is a whole sentence of the source and about the claim, and you see the evidence and decide. Supported means the sentence was found, not that the claim is true."],
+  ["Pasted text is taken on trust", "Code can warn when pasted text shares few terms with the paper, but cannot prove where it came from. Claims checked against it are labelled Supported · your text, and the report says so."],
+  ["Long texts", `Only the first ${LIMITS.maxSentences} sentences (about ${LIMITS.sourceTextChars.toLocaleString()} characters) of a text are checked, and the check says so.`],
+  ["Free AI and database limits", "NVIDIA's free tier allows about 40 requests a minute (community-reported); OpenAlex gives each API key a daily budget. When a limit is hit, claims show Unchecked and references Not yet verified, never a guess."],
+  ["Per-server memory", "Caches and rate limits live in each server instance's memory, so on serverless hosting they are not global. The server keeps recent AI replies for up to 12 hours (not linked to you); they disappear on restart."],
   ["Database coverage is uneven", "Crossref and OpenAlex over-represent some languages and regions. The source-mix view helps you notice imbalance."],
   ["Fuzzy matching is not perfect", "Thresholds are tuned on a test set (below). Near-misses become Close match so you can compare and confirm."],
 ];
 
-const ORDER: TrustLabel[] = ["verified", "overreach", "not_supported", "unchecked", "ai_reasoning", "not_found", "retracted", "close_match", "student_added"];
+const ORDER: TrustLabel[] = ["supported", "supported_own_text", "overreach", "not_supported", "unchecked", "ai_reasoning", "verified", "close_match", "not_found", "retracted", "unavailable", "student_added"];
 
 type EvalSummary = {
   ranAt?: string;
@@ -43,10 +48,73 @@ type EvalSummary = {
   byExpected: Record<string, { total: number; correct: number }>;
   mistakes: Array<{ ref: string; expected: string; got: string }>;
 };
-type EvalResults = EvalSummary & { holdout?: EvalSummary };
+type EvalResults = EvalSummary & {
+  holdout?: EvalSummary;
+  skeptic?: (EvalSummary & { model?: string; unchecked: number; falseSupport: number }) | null;
+  codeHints?: { ranAt: string; total: number; overreach: { total: number; flagged: number }; notSupported: { total: number; flagged: number }; supported: { total: number; flagged: number }; note?: string };
+};
+
+function StatusRow({ ok, label, detail }: { ok: boolean; label: string; detail: string }) {
+  return (
+    <li className="flex gap-2.5 py-2">
+      {ok ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-trace-600" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />}
+      <span className="min-w-0">
+        <span className="block font-medium text-ink-900">{label}</span>
+        <span className="block text-[12.5px] leading-relaxed text-ink-500">{detail}</span>
+      </span>
+    </li>
+  );
+}
+
+function ProjectFiles() {
+  const router = useRouter();
+  const current = useStore((s) => (s.currentProjectId ? s.projects[s.currentProjectId] : undefined));
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <div className="rounded-xl border border-ink-200 p-3.5">
+      <p className="font-medium text-ink-900">Move a project to another browser or device</p>
+      <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-500">One file with the draft, sources, checks, decisions and audit log. Importing replaces a project with the same ID.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!current}
+          onClick={() => current && download(`${slug(current.title)}.claimtrace.json`, exportProjectFile(current.id), "application/json")}
+        >
+          <Download /> Export {current ? "this project" : "a project"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => input.current?.click()}>
+          <Upload /> Import a project file
+        </Button>
+        <input
+          ref={input}
+          type="file"
+          accept=".json,application/json"
+          className="sr-only"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            try {
+              const bundle = parseProjectFile(await file.text());
+              const exists = Boolean(useStore.getState().projects[bundle.project.id]);
+              if (exists && !window.confirm(`Replace your copy of "${bundle.project.title}" with the one in this file?`)) return;
+              importProjectFile(bundle);
+              toast.success(`Imported "${bundle.project.title}"`);
+              router.push("/app/overview");
+            } catch (err) {
+              toast.error("Could not import that file", { description: err instanceof Error ? err.message : undefined });
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function SettingsView() {
-  const ai = useAiStatus();
+  const health = useHealth();
+  const ai = health?.ai ?? null;
   const router = useRouter();
   const deleteAll = useStore((s) => s.deleteAllData);
   const projects = useStore((s) => s.projects);
@@ -54,6 +122,8 @@ export function SettingsView() {
   const audit = useStore((s) => s.audit);
   const bytes = useMemo(() => storedBytes(), [projects, sources, audit]); // eslint-disable-line react-hooks/exhaustive-deps
   const ev = evaluation as unknown as EvalResults;
+  const db = health?.sources;
+  const blocked = db?.blocked ?? [];
 
   return (
     <Page>
@@ -61,7 +131,7 @@ export function SettingsView() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel>
-          <PanelHeader icon={<Cpu />} title="AI connection" description="Two narrow agents and an assistant. Code makes every final check." />
+          <PanelHeader icon={<Cpu />} title="AI connection" description="Three narrow AI roles: the Scout plans searches, the Skeptic challenges claims, the Assistant explains sources. Code makes every final check." />
           <div className="space-y-4 px-5 py-4 text-[13.5px]">
             <div className="flex items-center justify-between rounded-xl bg-ink-50 px-4 py-3">
               <span className="text-ink-600">Status</span>
@@ -87,8 +157,37 @@ export function SettingsView() {
         </Panel>
 
         <Panel>
-          <PanelHeader icon={<Database />} title="Your data" description="Stored only in this browser. There is no account and no server database." />
-          <div className="space-y-4 px-5 py-4 text-[13.5px]">
+          <PanelHeader icon={<Globe />} title="Scholarly databases" description="Crossref and OpenAlex are free, but both limit requests. The server is configured as follows." />
+          <ul className="divide-y divide-ink-100 px-5 py-2 text-[13.5px]">
+            <StatusRow
+              ok={Boolean(db?.openalexKey)}
+              label={db?.openalexKey ? "OpenAlex API key set" : "No OpenAlex API key"}
+              detail={
+                db?.openalexKey
+                  ? "Searches use this key's own daily budget."
+                  : "Without a key, everyone on this network shares about $0.10 of OpenAlex requests a day (roughly 100 searches). Get a free key at openalex.org (Settings, API key) and set OPENALEX_API_KEY on the server."
+              }
+            />
+            <StatusRow
+              ok={Boolean(db?.contactEmail)}
+              label={db?.contactEmail ? "Contact email set (Crossref polite pool)" : "No contact email"}
+              detail={
+                db?.contactEmail
+                  ? "Crossref answers from its polite pool, with higher limits."
+                  : "Crossref's public pool allows about one search a second. Set CONTACT_EMAIL on the server to use the polite pool."
+              }
+            />
+            {blocked.map((b) => (
+              <StatusRow key={b.service} ok={false} label={`${b.service} is refusing requests until ${new Date(b.until).toLocaleTimeString()}`} detail={b.message} />
+            ))}
+          </ul>
+        </Panel>
+      </div>
+
+      <Panel className="mt-4">
+        <PanelHeader icon={<Database />} title="Your data" description="Stored only in this browser. There is no account and no server database." />
+        <div className="grid gap-4 px-5 py-4 text-[13.5px] lg:grid-cols-2">
+          <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2 text-center">
               {[
                 ["Projects", Object.keys(projects).length],
@@ -126,7 +225,7 @@ export function SettingsView() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete everything ClaimTrace stored in this browser?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This removes all projects, sources, drafts, checks, decisions and the audit log. It cannot be undone. Download your data first if you need it.
+                      This removes all projects, sources, drafts, checks, decisions and the audit log. It cannot be undone. Export a project file first if you need it.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -146,8 +245,9 @@ export function SettingsView() {
               </AlertDialog>
             </div>
           </div>
-        </Panel>
-      </div>
+          <ProjectFiles />
+        </div>
+      </Panel>
 
       <Panel className="mt-4">
         <PanelHeader icon={<ShieldCheck />} title="How the checks decide" description="These are the exact rules the code uses (src/core/config.ts)." />
@@ -156,11 +256,16 @@ export function SettingsView() {
             ["DOI first", "A DOI that resolves in Crossref or OpenAlex is the strongest match. A real DOI attached to a different title is Not found."],
             ["Title match", `At least ${Math.round(THRESHOLDS.titleMatch * 100)}% similar (ignoring case, punctuation, word order and "RETRACTED:"). Below ${Math.round(THRESHOLDS.titleDifferentPaper * 100)}% means a different paper.`],
             ["First author and year", `Surnames match despite accents and typos; years may differ by ${THRESHOLDS.yearTolerance} (online first vs print). Differences give a Close match.`],
-            ["Pasted references", `At least ${Math.round(THRESHOLDS.freeTextVerified * 100)}% of the record's title words, the first author and the year must appear. ${Math.round(THRESHOLDS.freeTextClose * 100)}% or more is a Close match.`],
-            ["Retractions", "Crossref (including Retraction Watch data) and OpenAlex are both checked. The label says which database flagged it."],
-            ["Evidence quotes", `An AI-proposed sentence counts only if code finds it in the source (at least ${Math.round(THRESHOLDS.quoteMatch * 100)}% identical).`],
+            ["Same paper, not just similar words", "Without a DOI, a Close match also needs a matching author (or a near-identical title when no author is given), so an invented reference is never corrected into an unrelated real paper."],
+            ["Pasted references", `At least ${Math.round(THRESHOLDS.freeTextVerified * 100)}% of the record's title words, the first author and the year must appear. ${Math.round(THRESHOLDS.freeTextClose * 100)}% or more with the same authors is a Close match.`],
+            ["Not found vs Not yet verified", "Not found only when Crossref and OpenAlex both answered. If either could not be reached, the check could not finish: the reference is marked Not yet verified (never Verified) and you can check it again later."],
+            ["Retractions", "Crossref (including Retraction Watch data) and OpenAlex are both checked. The label says which database flagged it, and whether one could not be reached."],
+            [
+              "Evidence sentences",
+              `The AI's evidence counts only if code finds it in the source (at least ${Math.round(THRESHOLDS.quoteMatch * 100)}% identical), it is at least ${Math.round(THRESHOLDS.quoteCoverage * 100)}% of the sentence, and it shares at least ${Math.round(THRESHOLDS.evidenceOverlap * 100)}% of the claim's key terms or is the sentence code ranks most relevant.`,
+            ],
             ["Patchwriting", `${THRESHOLDS.patchwritingWords} or more consecutive words shared with the source (outside quotation marks) are flagged.`],
-            ["Overreach hints", "Code flags causal wording for associations, certainty the source does not express, and claims about everyone from one sample. The Skeptic judges them."],
+            ["Overreach hints", "Code flags causal wording for associations, certainty the source does not express, claims about everyone from one sample, effect sizes the source does not state, a different population, and an opposite direction. The Skeptic judges them."],
           ].map(([k, v]) => (
             <div key={k} className="border-b border-ink-100 pb-3">
               <p className="font-medium text-ink-950">{k}</p>
@@ -172,7 +277,7 @@ export function SettingsView() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Panel>
-          <PanelHeader icon={<FlaskConical />} title="Verifier accuracy" description="Measured on a labelled test set of real, fabricated, mismatched and retracted references (npm run eval)." />
+          <PanelHeader icon={<FlaskConical />} title="Reference check accuracy" description="The Verifier, measured on labelled real, fabricated, mismatched and retracted references (npm run eval)." />
           <div className="px-5 py-4">
             {ev.total ? (
               <>
@@ -193,8 +298,8 @@ export function SettingsView() {
                   </div>
                 </div>
                 <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
-                  The held-out references were written after the rules were tuned and run once. Both sets are small, so treat these as early evidence, not a
-                  guarantee.
+                  The held-out references were written after the rules were tuned and run once. Both sets are small, so treat these as early evidence, not a guarantee. They
+                  measure references only, not claims.
                 </p>
                 <ul className="mt-3 space-y-1.5 text-[13px]">
                   {Object.entries(ev.byExpected).map(([k, v]) => (
@@ -227,14 +332,51 @@ export function SettingsView() {
         </Panel>
 
         <Panel>
-          <PanelHeader icon={<Scale />} title="Known limitations" description="Stated openly, so nobody mistakes a label for a guarantee." />
-          <ul className="space-y-3 px-5 py-4">
-            {LIMITATIONS.map(([k, v]) => (
-              <li key={k} className="text-[13px] leading-relaxed">
-                <span className="font-medium text-ink-950">{k}.</span> <span className="text-ink-600">{v}</span>
-              </li>
-            ))}
-          </ul>
+          <PanelHeader icon={<FlaskConical />} title="Claim check accuracy" description="The Skeptic, measured on 20 labelled claims about real abstracts (eval/skeptic-set.json)." />
+          <div className="space-y-3 px-5 py-4 text-[13px]">
+            {ev.skeptic ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-ink-50 px-4 py-3">
+                    <p className="text-[12px] text-ink-500">Correct verdicts</p>
+                    <p className="mt-0.5 text-[26px] font-semibold tracking-[-0.03em] text-ink-950">
+                      {ev.skeptic.correct} of {ev.skeptic.total}
+                    </p>
+                  </div>
+                  <div className={cn("rounded-xl px-4 py-3", ev.skeptic.falseSupport ? "bg-rose-50" : "bg-trace-50")}>
+                    <p className="text-[12px] text-ink-500">Wrongly marked Supported</p>
+                    <p className="mt-0.5 text-[26px] font-semibold tracking-[-0.03em] text-ink-950">{ev.skeptic.falseSupport}</p>
+                  </div>
+                </div>
+                <p className="text-[12px] leading-relaxed text-ink-500">
+                  {ev.skeptic.model}, run on {ev.skeptic.ranAt ? new Date(ev.skeptic.ranAt).toLocaleString() : "an unknown date"}; {ev.skeptic.unchecked} left Unchecked by
+                  code&apos;s evidence rules. A small set: early evidence, not a guarantee.
+                </p>
+              </>
+            ) : (
+              <p className="rounded-xl bg-sky-50 p-3 leading-relaxed text-sky-900 ring-1 ring-sky-200 ring-inset">
+                <b>Not measured yet.</b> The verdict accuracy needs a live AI run: with <code className="font-mono">NVIDIA_API_KEY</code> set, run{" "}
+                <code className="font-mono">npm run eval:skeptic -- live</code>.
+              </p>
+            )}
+            {ev.codeHints && (
+              <div>
+                <p className="font-medium text-ink-900">Code hints on the same set (no AI)</p>
+                <ul className="mt-1.5 space-y-1 text-ink-600">
+                  <li>
+                    Overreaching claims flagged: <b className="text-ink-950">{ev.codeHints.overreach.flagged}</b> of {ev.codeHints.overreach.total}
+                  </li>
+                  <li>
+                    Supported claims flagged (false alarms): <b className="text-ink-950">{ev.codeHints.supported.flagged}</b> of {ev.codeHints.supported.total}
+                  </li>
+                  <li>
+                    Unsupported claims with a direction or overreach hint: {ev.codeHints.notSupported.flagged} of {ev.codeHints.notSupported.total}
+                  </li>
+                </ul>
+                {ev.codeHints.note && <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{ev.codeHints.note}</p>}
+              </div>
+            )}
+          </div>
         </Panel>
       </div>
 
@@ -244,34 +386,46 @@ export function SettingsView() {
           <ul className="divide-y divide-ink-100">
             {ORDER.map((l) => (
               <li key={l} className="flex gap-4 px-5 py-3">
-                <span className="w-32 shrink-0">
+                <span className="w-40 shrink-0">
                   <TrustBadge label={l} withTooltip={false} />
                 </span>
-                <span className="text-[13px] leading-relaxed text-ink-600">{LABELS[l].claim}</span>
+                <span className="text-[13px] leading-relaxed text-ink-600">{labelMeaning(l, "claim")}</span>
               </li>
             ))}
           </ul>
         </Panel>
-        <Panel>
-          <PanelHeader icon={<Landmark />} title="Governance" description="Who is accountable, and the rules ClaimTrace follows." />
-          <div className="space-y-4 px-5 py-4 text-[13px] leading-relaxed text-ink-600">
-            <p>
-              <span className="font-medium text-ink-950">The student is the author of record</span> and makes every final decision. ClaimTrace gives evidence, not verdicts, and logs
-              every AI output and decision. Team 6 owns the system&apos;s behaviour and fixes reported errors.
-            </p>
-            <p>
-              <span className="font-medium text-ink-950">AI disclosure.</span> Inline labels separate AI reasoning from verified sources, and every export includes an AI-use
-              statement. Output that is not a live AI call is labelled Sample.
-            </p>
-            <ul className="list-disc space-y-1 pl-5">
-              <li>SP Jain academic integrity and AI-use policy</li>
-              <li>APA 7, including APA guidance on citing generative AI</li>
-              <li>UNESCO guidance on generative AI in education and research (2023)</li>
-              <li>Data minimisation in line with GDPR principles</li>
-              <li>OpenAlex, Crossref and NVIDIA terms of use</li>
+        <div className="space-y-4">
+          <Panel>
+            <PanelHeader icon={<Scale />} title="Known limitations" description="Stated openly, so nobody mistakes a label for a guarantee." />
+            <ul className="space-y-3 px-5 py-4">
+              {LIMITATIONS.map(([k, v]) => (
+                <li key={k} className="text-[13px] leading-relaxed">
+                  <span className="font-medium text-ink-950">{k}.</span> <span className="text-ink-600">{v}</span>
+                </li>
+              ))}
             </ul>
-          </div>
-        </Panel>
+          </Panel>
+          <Panel>
+            <PanelHeader icon={<Landmark />} title="Governance" description="Who is accountable, and the rules ClaimTrace follows." />
+            <div className="space-y-4 px-5 py-4 text-[13px] leading-relaxed text-ink-600">
+              <p>
+                <span className="font-medium text-ink-950">The student is the author of record</span> and makes every final decision. ClaimTrace gives evidence, not verdicts, and logs
+                every AI output and decision. Team 6 owns the system&apos;s behaviour and fixes reported errors.
+              </p>
+              <p>
+                <span className="font-medium text-ink-950">AI disclosure.</span> Inline labels separate AI reasoning from verified sources, and every export includes an AI-use
+                statement. Output that is not a live AI call is labelled Sample.
+              </p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>SP Jain academic integrity and AI-use policy</li>
+                <li>APA 7, including APA guidance on citing generative AI</li>
+                <li>UNESCO guidance on generative AI in education and research (2023)</li>
+                <li>Data minimisation in line with GDPR principles</li>
+                <li>OpenAlex, Crossref and NVIDIA terms of use</li>
+              </ul>
+            </div>
+          </Panel>
+        </div>
       </div>
     </Page>
   );

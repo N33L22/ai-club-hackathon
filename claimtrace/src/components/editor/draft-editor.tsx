@@ -3,8 +3,9 @@
 import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { AtSign, Bold, Check, Heading2, Italic, List, ListOrdered, Loader2, Quote, Redo2, Undo2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { AtSign, Bold, Check, Heading2, Italic, List, ListOrdered, Loader2, Quote, Redo2, Save, Undo2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { StatusDot } from "@/components/trust/trust-badge";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -65,7 +66,9 @@ function ToolButton({ label, onClick, active, disabled, children }: { label: str
   );
 }
 
-function Toolbar({ editor, onCite, saved }: { editor: Editor; onCite: () => void; saved: boolean }) {
+const timeOf = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+function Toolbar({ editor, onCite, onSave, saved, savedAt }: { editor: Editor; onCite: () => void; onSave: () => void; saved: boolean; savedAt: Date | null }) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -118,11 +121,24 @@ function Toolbar({ editor, onCite, saved }: { editor: Editor; onCite: () => void
         <AtSign className="size-3.5" /> Cite a source
       </button>
       <span className="ml-auto flex items-center gap-3 text-[12px] text-ink-400">
-        <span>{state.words} words</span>
-        <span className="flex items-center gap-1">
+        <span className="hidden sm:inline">{state.words} words</span>
+        <span className="flex items-center gap-1" role="status" aria-live="polite">
           {saved ? <Check className="size-3.5 text-trace-600" /> : <Loader2 className="size-3.5 animate-spin" />}
-          {saved ? "Saved in this browser" : "Saving"}
+          {saved ? (savedAt ? `Saved ${timeOf(savedAt)}` : "Saved in this browser") : "Saving…"}
         </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onSave}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2.5 text-[12.5px] font-medium text-ink-800 hover:border-ink-300 hover:bg-ink-50"
+            >
+              <Save className="size-3.5" /> Save draft
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Saves now (Ctrl+S). Your draft also saves itself as you type, in this browser only.</TooltipContent>
+        </Tooltip>
       </span>
     </div>
   );
@@ -141,6 +157,7 @@ export interface DraftEditorProps {
 export function DraftEditor({ project, sources, labels, activeKey, focusKey, onOpenSource }: DraftEditorProps) {
   const setDoc = useStore((s) => s.setDoc);
   const [saved, setSaved] = useState(true);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [citeOpen, setCiteOpen] = useState(false);
   const [version, setVersion] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,12 +182,41 @@ export function DraftEditor({ project, sources, labels, activeKey, focusKey, onO
       setSaved(false);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
+        timer.current = null;
         setDoc(project.id, e.getJSON() as DocNode);
         setSaved(true);
+        setSavedAt(new Date());
         setVersion((v) => v + 1);
       }, 350);
     },
   });
+
+  /** "Save draft" (and Ctrl+S): write the document now, whether or not an autosave is pending. */
+  const saveNow = useCallback(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    setDoc(projectId, editor.getJSON() as DocNode);
+    const at = new Date();
+    setSaved(true);
+    setSavedAt(at);
+    setVersion((v) => v + 1);
+    toast.success("Draft saved", { description: `Saved in this browser at ${timeOf(at)}.` });
+  }, [editor, projectId, setDoc]);
+
+  // Ctrl+S / Cmd+S saves the draft instead of opening the browser's "save page" dialog
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        saveNow();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [saveNow]);
 
   // flush a pending save when leaving the page
   useEffect(
@@ -220,7 +266,7 @@ export function DraftEditor({ project, sources, labels, activeKey, focusKey, onO
   return (
     <CitationContext.Provider value={{ style: project.style, numbers, onOpenSource }}>
       <div className="manuscript rounded-2xl border border-ink-200/80 bg-white shadow-card">
-        {editor ? <Toolbar editor={editor} onCite={() => setCiteOpen(true)} saved={saved} /> : <div className="h-12 border-b border-ink-100" />}
+        {editor ? <Toolbar editor={editor} onCite={() => setCiteOpen(true)} onSave={saveNow} saved={saved} savedAt={savedAt} /> : <div className="h-12 border-b border-ink-100" />}
         {editor ? <EditorContent editor={editor} /> : <div className="shimmer m-10 h-64 rounded-xl" />}
       </div>
       <CommandDialog open={citeOpen} onOpenChange={setCiteOpen} title="Cite a source" description="Choose a source from your library">

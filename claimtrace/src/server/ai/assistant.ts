@@ -1,8 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { LIMITS } from "@/core/config";
+import { checkableSentences } from "@/core/evidence/judge";
 import { checkSummaryPoints, keySentences } from "@/core/evidence/summary-check";
-import { splitSentences } from "@/core/text/sentences";
 import type { GroundedSummary, TextOrigin } from "@/core/types";
 import { AiUnavailable, chatJson } from "./client";
 import { ASSISTANT_SYSTEM, assistantUser } from "./prompts";
@@ -21,12 +20,14 @@ const AssistantReply = z.object({
 
 /**
  * Evidence-backed summary (gap H3). Every point links to source sentences and
- * code checks each link; unlinked points are labelled "AI reasoning".
+ * code checks each link (shared words and the same direction of finding);
+ * unlinked points are labelled "AI reasoning".
  */
-export async function summarise(args: { title: string; text: string; textOrigin: TextOrigin }): Promise<GroundedSummary> {
+export async function summarise(args: { title: string; text: string; textOrigin: TextOrigin; textChars?: number }): Promise<GroundedSummary> {
   const createdAt = new Date().toISOString();
-  const sentences = splitSentences(args.text.slice(0, LIMITS.sourceTextChars)).slice(0, LIMITS.maxSentences);
-  if (!sentences.length) return { points: [], mode: "code", textOrigin: args.textOrigin, createdAt };
+  // the same sentence split and length limits as the Skeptic
+  const { sentences, truncated } = checkableSentences(args.text, args.textChars);
+  if (!sentences.length) return { points: [], mode: "code", textOrigin: args.textOrigin, createdAt, truncated };
 
   try {
     const { data, model } = await chatJson(
@@ -44,7 +45,7 @@ export async function summarise(args: { title: string; text: string; textOrigin:
       data.points.map((p) => ({ text: p.text, sentences: p.sentences.map((n) => n - 1) })),
       sentences,
     );
-    return { points, mode: "ai", model, textOrigin: args.textOrigin, createdAt };
+    return { points, mode: "ai", model, textOrigin: args.textOrigin, createdAt, truncated };
   } catch (e) {
     if (!(e instanceof AiUnavailable)) throw e;
     const picked = keySentences(sentences, 3);
@@ -53,6 +54,7 @@ export async function summarise(args: { title: string; text: string; textOrigin:
       mode: "code",
       textOrigin: args.textOrigin,
       createdAt,
+      truncated,
     };
   }
 }

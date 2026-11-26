@@ -109,15 +109,20 @@ export function useSourceCounts(sources: LibrarySource[]) {
 
 let healthPromise: Promise<HealthResponse> | null = null;
 
-export function useAiStatus(): HealthResponse["ai"] | null {
-  const [ai, setAi] = useState<HealthResponse["ai"] | null>(null);
+/** Server status (AI and database configuration), fetched once per page load. */
+export function useHealth(): HealthResponse | null {
+  const [health, setHealth] = useState<HealthResponse | null>(null);
   useEffect(() => {
     let live = true;
     healthPromise ??= api.health().catch(() => ({ ok: false, version: "", ai: { configured: false, model: "", provider: "" } }));
-    void healthPromise.then((h) => live && setAi(h.ai));
+    void healthPromise.then((h) => live && setHealth(h));
     return () => {
       live = false;
     };
   }, []);
-  return ai;
+  return health;
+}
+
+export function useAiStatus(): HealthResponse["ai"] | null {
+  return useHealth()?.ai ?? null;
 }

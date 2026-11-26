@@ -13,10 +13,13 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { Logo } from "@/components/brand/logo";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,9 +66,12 @@ function ProjectSwitcher() {
   const projects = useStore((s) => s.projects);
   const setCurrent = useStore((s) => s.setCurrentProject);
   const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const list = Object.values(projects).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return (
-    <DropdownMenu>
+    <>
+    {/* not modal: it can open a dialog, and two stacked modal layers can leave the page unclickable */}
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-xl border border-ink-200 bg-white p-2 text-left shadow-card transition-colors hover:border-ink-300 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-trace-500/30">
         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-trace-50 to-trace-100 font-display text-[15px] text-trace-800 ring-1 ring-trace-200">
           {(project?.title ?? "?").slice(0, 1).toUpperCase()}
@@ -98,8 +104,18 @@ function ProjectSwitcher() {
         <DropdownMenuItem onSelect={() => router.push("/app")} className="gap-2">
           <LayoutGrid className="size-4" /> All projects
         </DropdownMenuItem>
+        {project && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="gap-2 text-rose-700 focus:text-rose-700">
+              <Trash2 className="size-4" /> Delete this project…
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
+    {project && <DeleteProjectDialog project={project} open={confirmDelete} onOpenChange={setConfirmDelete} />}
+    </>
   );
 }
 

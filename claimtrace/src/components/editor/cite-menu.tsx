@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
-import type { TrustLabel } from "@/core/labels";
+import { LABELS, type TrustLabel } from "@/core/labels";
 import { toneOf } from "@/components/trust/trust-badge";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +44,7 @@ export const CiteMenu = forwardRef<CiteMenuHandle, { items: CiteItem[]; command:
     }));
 
     return (
-      <div className="w-[380px] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-pop" role="listbox" aria-label="Cite a source">
+      <div className="w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-pop" role="listbox" aria-label="Cite a source">
         <div className="flex items-center gap-2 border-b border-ink-100 px-3 py-2 text-[11.5px] text-ink-500">
           <BookOpen className="size-3.5" /> Cite from your library{query ? `: "${query}"` : ""}
         </div>
@@ -67,7 +67,11 @@ export const CiteMenu = forwardRef<CiteMenuHandle, { items: CiteItem[]; command:
                 >
                   <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", toneOf(it.status).dot)} aria-hidden="true" />
                   <span className="min-w-0">
-                    <span className="block text-[13px] font-medium text-ink-900">{it.label}</span>
+                    <span className="flex flex-wrap items-baseline gap-x-2 text-[13px] font-medium text-ink-900">
+                      {it.label}
+                      {/* the label's name, not just its colour */}
+                      <span className={cn("text-[11.5px] font-medium", toneOf(it.status).text)}>{LABELS[it.status].title}</span>
+                    </span>
                     <span className="block truncate font-serif text-[13px] text-ink-500">{it.title}</span>
                   </span>
                 </button>

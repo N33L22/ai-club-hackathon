@@ -11,17 +11,22 @@ const crypto = require("crypto");
 const pptxgen = require("pptxgenjs");
 const JSZip = require("jszip");
 const sharp = require("sharp");
-const { C, FONTS, slides } = require("./spec");
+const { C, FONTS, THEME: DECK, slides } = require("./spec");
 
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "ClaimTrace_Team6_Pitch.pptx");
 const ICON_DIR = path.join(ROOT, "node_modules", "lucide-static", "icons");
 const SKILL_THEME = process.env.APPLY_THEME_JS;
 
+// PowerPoint theme slots: dark 1 / light 1 are the text and background colours of the deck
 const THEME = {
   name: "ClaimTrace", headFontFace: FONTS.head, bodyFontFace: FONTS.body,
-  colors: { dk1: C.bg, lt1: "FFFFFF", dk2: C.card, lt2: C.text, accent1: C.mint, accent2: C.sky,
-    accent3: C.violet, accent4: C.amber, accent5: C.rose, accent6: C.muted, hlink: C.sky, folHlink: C.violet },
+  colors:
+    DECK.name === "light"
+      ? { dk1: C.text, lt1: "FFFFFF", dk2: "252C3F", lt2: C.card2, accent1: C.mint, accent2: C.sky,
+        accent3: C.violet, accent4: C.amber, accent5: C.rose, accent6: C.muted, hlink: C.sky, folHlink: C.violet }
+      : { dk1: C.bg, lt1: "FFFFFF", dk2: C.card, lt2: C.text, accent1: C.mint, accent2: C.sky,
+        accent3: C.violet, accent4: C.amber, accent5: C.rose, accent6: C.muted, hlink: C.sky, folHlink: C.violet },
 };
 
 const iconCache = new Map();
@@ -62,7 +67,7 @@ async function render(pres, s, el) {
       fill: { color: el.fill, transparency: el.ft },
       line: el.line ? { color: el.line, width: el.lw, transparency: el.lt } : { type: "none" } };
     if (shape === pres.ShapeType.roundRect) o.rectRadius = Math.min(el.r, Math.min(el.w, el.h) / 2);
-    if (el.shadow) o.shadow = { type: "outer", blur: 14, offset: 4, angle: 90, color: "000000", opacity: 0.35 };
+    if (el.shadow) o.shadow = { type: "outer", blur: DECK.shadow.blur, offset: DECK.shadow.offset, angle: 90, color: DECK.name === "light" ? "0F172A" : "000000", opacity: DECK.shadow.opacity };
     s.addShape(shape, o);
   } else if (el.type === "text") {
     const o = { x: el.x, y: el.y, w: el.w, h: el.h, margin: 0, valign: el.valign, align: el.align,
@@ -184,12 +189,13 @@ async function postProcess(file) {
   pres.defineSlideMaster({ title: "CT_TITLE", background: { color: C.bg }, objects: [titlePh(0.6, 1.08, 6.8, 1.15, 64)] });
   pres.defineSlideMaster({ title: "CT_CONTENT", background: { color: C.bg }, objects: [titlePh(0.55, 0.82, 12.2, 0.6, 28)] });
 
-  const bgGif = path.join(ROOT, "assets", "bg.gif");
+  const bgGif = path.join(ROOT, "assets", `${DECK.asset}.gif`);
   for (const sl of slides) {
     pres.addSection({ title: sl.title });
     const s = pres.addSlide({ masterName: sl.layout === "title" ? "CT_TITLE" : "CT_CONTENT", sectionTitle: sl.title });
     s.addImage({ path: bgGif, x: 0, y: 0, w: 13.333, h: 7.5, objectName: "Animated background", altText: "Animated citation-network background" });
     for (const el of sl.els) await render(pres, s, el);
+    if (sl.notes) s.addNotes(sl.notes);
   }
   await pres.writeFile({ fileName: OUT });
   if (SKILL_THEME) await require(SKILL_THEME).applyTheme(OUT, THEME);

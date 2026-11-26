@@ -4,8 +4,20 @@
  * content words with them. Anything else is labelled "AI reasoning".
  */
 import { THRESHOLDS } from "../config";
+import { isNegated } from "../text/polarity";
 import { stems } from "../text/tokens";
 import type { SummaryPoint } from "../types";
+
+/**
+ * Shared words are not enough: "X was not linked to Y" shares every content
+ * word with "X was linked to Y". A point whose finding points the other way
+ * from its sentences is not grounded.
+ */
+export function sameDirection(text: string, support: string[]): boolean {
+  if (!support.length) return true;
+  const negative = isNegated(text);
+  return negative ? support.some(isNegated) : !support.every(isNegated);
+}
 
 export function groundingOverlap(text: string, support: string[]): number {
   const want = new Set(stems(text));
@@ -22,8 +34,9 @@ export function checkSummaryPoints(
 ): SummaryPoint[] {
   return points.map((p) => {
     const valid = [...new Set(p.sentences)].filter((i) => Number.isInteger(i) && i >= 0 && i < sourceSentences.length);
-    const overlap = groundingOverlap(p.text, valid.map((i) => sourceSentences[i]));
-    return { text: p.text.trim(), sentences: valid, grounded: valid.length > 0 && overlap >= THRESHOLDS.summaryGrounding };
+    const support = valid.map((i) => sourceSentences[i]);
+    const overlap = groundingOverlap(p.text, support);
+    return { text: p.text.trim(), sentences: valid, grounded: valid.length > 0 && overlap >= THRESHOLDS.summaryGrounding && sameDirection(p.text, support) };
   });
 }
 

@@ -30,10 +30,17 @@ import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { STEPS } from "@/components/app/workflow-stepper";
 import { TrustBadge } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
-import { LABELS, type TrustLabel } from "@/core/labels";
+import { LABELS, labelMeaning, type TrustLabel } from "@/core/labels";
 import evaluation from "@/lib/eval-results.json";
+import { useAiStatus } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { LiveCheck } from "./live-check";
+
+/** The model the server is actually configured with ("vendor/model-name" -> "model-name"), never a hard-coded name. */
+function useModelName(): { model?: string; provider: string } {
+  const ai = useAiStatus();
+  return { model: ai?.model ? ai.model.split("/").pop() : undefined, provider: ai?.provider || "NVIDIA NIM" };
+}
 
 const reveal = {
   initial: { opacity: 0, y: 18 },
@@ -169,7 +176,7 @@ function Checks() {
   const items = [
     { icon: Database, name: "Exists", who: "Code", text: "Is it a real record? The DOI or the reference is looked up in Crossref and OpenAlex. The AI is never trusted to say a paper is real." },
     { icon: ScanSearch, name: "Matches", who: "Code", text: "Do the title, first author and year match the record? Near-misses become a Close match you can compare and confirm." },
-    { icon: Quote, name: "Supports", who: "AI, checked by code", text: "Does the source actually say it? The Skeptic picks the supporting sentence; code confirms that exact sentence is in the source." },
+    { icon: Quote, name: "Supports", who: "AI, checked by code", text: "Does the source actually say it? The Skeptic picks the supporting sentence; code confirms it is a whole sentence of the source and about the claim." },
     { icon: Lock, name: "Retraction flag", who: "Code", text: "Has the paper been retracted or corrected? Crossref's Retraction Watch data and OpenAlex are cross-checked." },
   ];
   return (
@@ -224,6 +231,7 @@ function Architecture() {
   const crossref = useRef<HTMLDivElement>(null);
   const openalex = useRef<HTMLDivElement>(null);
   const nim = useRef<HTMLDivElement>(null);
+  const { model, provider } = useModelName();
   return (
     <div ref={container} className="relative mt-12 grid items-center gap-10 rounded-3xl border border-ink-200/80 bg-white p-8 shadow-card md:grid-cols-3 md:p-12">
       <div className="space-y-4">
@@ -243,7 +251,7 @@ function Architecture() {
         <p className="text-[11px] font-medium tracking-wide text-ink-400 uppercase">Checked against</p>
         <Node refEl={crossref} icon={Database} title="Crossref" sub="DOI registry, Retraction Watch" tone="trace" />
         <Node refEl={openalex} icon={Globe} title="OpenAlex" sub="Records, abstracts, open access" tone="trace" />
-        <Node refEl={nim} icon={Bot} title="NVIDIA NIM" sub="Llama 3.3 70B: Scout and Skeptic" tone="violet" />
+        <Node refEl={nim} icon={Bot} title={provider} sub={model ? `${model}: Scout, Skeptic, Assistant` : "Scout, Skeptic, Assistant"} tone="violet" />
       </div>
       <AnimatedBeam containerRef={container} fromRef={lib} toRef={hub} curvature={-40} duration={4} delay={0} {...BEAM_IN} />
       <AnimatedBeam containerRef={container} fromRef={draft} toRef={hub} curvature={0} duration={4} delay={0.4} {...BEAM_IN} />
@@ -262,7 +270,10 @@ function HowItWorks() {
         <motion.div {...reveal} className="max-w-2xl">
           <p className="font-mono text-[11px] tracking-[0.14em] text-trace-700 uppercase">How it works</p>
           <h2 className="font-display mt-3 text-[38px] leading-tight text-ink-950">The AI suggests. Code checks. You decide.</h2>
-          <p className="mt-4 text-[15.5px] leading-relaxed text-ink-500">Seven steps, two narrow AI agents, one code checker and three human checkpoints. The Scout can only search; the Skeptic can only challenge.</p>
+          <p className="mt-4 text-[15.5px] leading-relaxed text-ink-500">
+            Seven steps, three narrow AI roles, one code checker and three human checkpoints. The Scout can only plan a search, the Skeptic can only challenge a claim, and the
+            Assistant can only explain a source, sentence by sentence.
+          </p>
         </motion.div>
         <ol className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
           {STEPS.map((s, i) => (
@@ -278,13 +289,29 @@ function HowItWorks() {
           ))}
         </ol>
         <Architecture />
-        <p className="mt-4 text-center text-[13px] text-ink-500">The AI runs in only two places. Existence, metadata, retraction, quote checks and the export gate are plain code.</p>
+        <p className="mt-4 text-center text-[13px] text-ink-500">
+          The AI has three narrow roles and decides nothing on its own. Existence, metadata, retraction, evidence checks and the export gate are plain code. Your library and
+          drafts stay in your browser: there are no accounts and no server database.
+        </p>
       </div>
     </section>
   );
 }
 
-const LABEL_GRID: TrustLabel[] = ["verified", "overreach", "not_supported", "unchecked", "close_match", "not_found", "retracted", "student_added", "ai_reasoning"];
+const LABEL_GRID: TrustLabel[] = [
+  "supported",
+  "supported_own_text",
+  "overreach",
+  "not_supported",
+  "unchecked",
+  "ai_reasoning",
+  "verified",
+  "close_match",
+  "not_found",
+  "retracted",
+  "unavailable",
+  "student_added",
+];
 
 function Labels() {
   return (
@@ -293,13 +320,19 @@ function Labels() {
         <motion.div {...reveal} className="max-w-2xl">
           <p className="font-mono text-[11px] tracking-[0.14em] text-trace-700 uppercase">Trust labels</p>
           <h2 className="font-display mt-3 text-[38px] leading-tight text-ink-950">Every claim says how far you can trust it.</h2>
-          <p className="mt-4 text-[15.5px] leading-relaxed text-ink-500">Each label has an icon and a name, never colour alone. Verified means the supporting sentence was found, not that the claim is true.</p>
+          <p className="mt-4 text-[15.5px] leading-relaxed text-ink-500">
+            Each label has an icon and a name, never colour alone. A reference is <b className="font-medium text-ink-700">Verified</b> when it matches a real record; a claim is{" "}
+            <b className="font-medium text-ink-700">Supported</b> when a source sentence backs it. Neither means the claim is true.
+          </p>
         </motion.div>
         <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {LABEL_GRID.map((l, i) => (
             <motion.div key={l} {...reveal} transition={{ ...reveal.transition, delay: (i % 3) * 0.08 }} className="rounded-2xl border border-ink-200/80 bg-white p-5 shadow-card">
-              <TrustBadge label={l} size="lg" withTooltip={false} />
-              <p className="mt-3 text-[13.5px] leading-relaxed text-ink-600">{LABELS[l].claim}</p>
+              <div className="flex items-center justify-between gap-2">
+                <TrustBadge label={l} size="lg" withTooltip={false} />
+                <span className="font-mono text-[10.5px] tracking-wide text-ink-400 uppercase">{LABELS[l].claim ? "claim" : "reference"}</span>
+              </div>
+              <p className="mt-3 text-[13.5px] leading-relaxed text-ink-600">{labelMeaning(l, "claim")}</p>
             </motion.div>
           ))}
         </div>
@@ -308,30 +341,39 @@ function Labels() {
   );
 }
 
+type EvalSummary = {
+  total: number;
+  correct: number;
+  holdout?: { total: number; correct: number };
+  skeptic?: { total: number; correct: number; falseSupport: number; model?: string } | null;
+  codeHints?: { overreach: { total: number; flagged: number }; supported: { total: number; flagged: number } };
+};
+
 function Honest() {
-  const ev = evaluation as { total: number; correct: number; holdout?: { total: number; correct: number } };
+  const ev = evaluation as EvalSummary;
   const guardrails = [
     { icon: Database, t: "Retrieval-only references", d: "The AI cannot write a citation. Every one comes from Crossref or OpenAlex." },
-    { icon: ScanSearch, t: "Details must match", d: "DOI first, then title, first author and year. Near-misses ask you to confirm." },
-    { icon: Quote, t: "Quote or it didn't happen", d: "Supported needs the exact source sentence, confirmed in the source by code." },
-    { icon: Sparkles, t: "Scope check", d: "Causal wording, extra certainty and over-generalisation are flagged for the Skeptic." },
-    { icon: SearchX, t: "Honest Not found", d: "No record means Not found; no text means Unchecked. Never a best guess." },
-    { icon: FileCheck2, t: "Export gate", d: "Export unlocks only when every flag has your decision and you sign off." },
+    { icon: ScanSearch, t: "Details must match", d: "DOI first, then title, first author and year. Near-misses ask you to compare and confirm." },
+    { icon: Quote, t: "Quote or it didn't happen", d: "Supported needs a whole source sentence that code finds in the text and that is about the claim." },
+    { icon: Sparkles, t: "Scope check", d: "Causal wording, extra certainty, effect sizes and the wrong population are flagged for the Skeptic." },
+    { icon: SearchX, t: "Honest Not found", d: "Not found only when both databases answered. A database outage is Not yet verified; no text is Unchecked." },
+    { icon: FileCheck2, t: "Export gate", d: "The final files unlock only when every flag has your decision and you sign off." },
   ];
   return (
     <section id="honest" className="border-t border-ink-200/70 bg-ink-25 py-24">
       <div className="mx-auto grid max-w-6xl gap-12 px-5 lg:grid-cols-[1fr_1.2fr]">
         <motion.div {...reveal}>
           <p className="font-mono text-[11px] tracking-[0.14em] text-trace-700 uppercase">Honest by design</p>
-          <h2 className="font-display mt-3 text-[38px] leading-tight text-ink-950">Six guardrails, and a measured accuracy.</h2>
+          <h2 className="font-display mt-3 text-[38px] leading-tight text-ink-950">Six guardrails, measured where we can.</h2>
           <p className="mt-4 text-[15.5px] leading-relaxed text-ink-500">
-            If the AI is offline or rate-limited, references are still verified by code and claims show Unchecked, never a fake Verified. Every AI output and every decision
+            If the AI is offline or rate-limited, references are still verified by code and claims show Unchecked, never a fake Supported. Every AI output and every decision
             is logged for your supervisor.
           </p>
           {ev.total > 0 && (
             <div className="mt-8 rounded-2xl border border-ink-200/80 bg-white p-6 shadow-card">
-              <p className="text-[12.5px] text-ink-500">Verifier accuracy on labelled references, checked live against Crossref and OpenAlex</p>
-              <div className="mt-2 flex flex-wrap items-end gap-x-8 gap-y-3">
+              <p className="text-[12.5px] font-medium text-ink-700">Reference checks (the Verifier)</p>
+              <p className="text-[12.5px] text-ink-500">Labelled references, checked live against Crossref and OpenAlex</p>
+              <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
                 {ev.holdout && (
                   <p className="text-[40px] leading-none font-semibold tracking-[-0.03em] text-ink-950">
                     {ev.holdout.correct}/{ev.holdout.total}
@@ -343,7 +385,31 @@ function Honest() {
                   <span className="mt-1.5 block text-[12.5px] font-medium tracking-normal text-ink-500">development set (rules tuned on it)</span>
                 </p>
               </div>
-              <p className="mt-3 text-[12.5px] text-ink-400">Real, fabricated, mismatched and retracted references. Small sets: early evidence, not a guarantee.</p>
+              <p className="mt-3 text-[12.5px] text-ink-400">Real, fabricated, mismatched and retracted references. These numbers are about references only, not claims.</p>
+
+              <div className="mt-5 border-t border-ink-100 pt-4">
+                <p className="text-[12.5px] font-medium text-ink-700">Claim checks (the Skeptic)</p>
+                {ev.skeptic ? (
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
+                    <span className="font-semibold text-ink-950">
+                      {ev.skeptic.correct}/{ev.skeptic.total}
+                    </span>{" "}
+                    correct verdicts on a labelled set of claims ({ev.skeptic.model}); {ev.skeptic.falseSupport} wrongly marked Supported.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
+                    Not measured yet: the verdict accuracy needs a live AI run on our labelled set of 20 claims.
+                    {ev.codeHints && (
+                      <>
+                        {" "}
+                        Code&apos;s overreach hints flag {ev.codeHints.overreach.flagged} of {ev.codeHints.overreach.total} overreaching test claims, with{" "}
+                        {ev.codeHints.supported.flagged === 0 ? "no" : ev.codeHints.supported.flagged} false alarms on {ev.codeHints.supported.total} supported ones (a
+                        development set).
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </motion.div>
@@ -372,7 +438,8 @@ function Cta() {
         <ShieldCheck className="mx-auto size-10 text-trace-600" />
         <h2 className="font-display mt-5 text-[44px] leading-tight text-ink-950">See it check a real draft in under a minute.</h2>
         <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-ink-500">
-          The demo project is a short literature review with eleven cited claims, nine real references, one invented reference and one retracted paper.
+          The demo project is a short literature review with eleven cited claims and nine references, including one invented reference, one retracted paper and a
+          near-miss citation.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
@@ -390,6 +457,7 @@ function Cta() {
 }
 
 function Footer() {
+  const { model, provider } = useModelName();
   return (
     <footer className="border-t border-ink-200/70 bg-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 md:flex-row md:items-center md:justify-between">
@@ -398,8 +466,8 @@ function Footer() {
           <p className="mt-2 text-[12.5px] text-ink-500">Team 6 · Neel, Mohit and Anand · AI Club Hackathon 2026</p>
         </div>
         <p className="max-w-md text-[12px] leading-relaxed text-ink-400">
-          Metadata from Crossref and OpenAlex (CC0). Retraction data from Retraction Watch via Crossref. AI checks by Llama 3.3 70B on NVIDIA NIM. The student is
-          responsible for the final text.
+          Metadata from Crossref and OpenAlex (CC0). Retraction data from Retraction Watch via Crossref. AI checks by {model ? `${model} on ` : "an open model on "}
+          {provider}. The student is responsible for the final text.
         </p>
       </div>
     </footer>

@@ -8,7 +8,7 @@ import { LIMITS } from "./config";
 const person = z.object({ family: z.string().trim().min(1).max(120), given: z.string().trim().max(120).optional() });
 
 export const PlanRequest = z.object({
-  question: z.string().trim().min(8, "Write a research question of at least a few words.").max(500),
+  question: z.string().trim().min(8, "Write a research question of at least a few words.").max(LIMITS.claimChars),
 });
 
 export const SearchRequest = z.object({
@@ -40,12 +40,15 @@ export const ClaimCheckRequest = z.object({
   citedAs: z.string().trim().max(400).default(""),
   text: z.string().max(LIMITS.sourceTextChars).default(""),
   textOrigin: z.enum(["student_text", "abstract", "none"]),
+  /** Length of the original text when the browser shortened it to the limit. */
+  textChars: z.number().int().min(0).max(5_000_000).optional(),
 });
 
 export const SummaryRequest = z.object({
   title: z.string().trim().max(600),
   text: z.string().min(1).max(LIMITS.sourceTextChars),
   textOrigin: z.enum(["student_text", "abstract", "none"]),
+  textChars: z.number().int().min(0).max(5_000_000).optional(),
 });
 
 export type PlanRequestBody = z.input<typeof PlanRequest>;

@@ -25,10 +25,11 @@ export interface ChatMessage {
 /** Shared per-minute budget for the provider's quota (about 40 requests a minute on NVIDIA's free tier). */
 const budget = new TokenBucket(config.ai.requestsPerMinute, config.ai.requestsPerMinute);
 
-/** Pull the first JSON object out of a model reply (tolerates code fences and chatter). */
+/** Pull the first JSON object out of a model reply (tolerates thinking blocks, code fences and chatter). */
 export function extractJson(text: string): unknown {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const body = fenced ? fenced[1] : text;
+  const visible = text.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/^[\s\S]*<\/think>/i, "");
+  const fenced = visible.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const body = fenced ? fenced[1] : visible;
   const start = body.indexOf("{");
   const end = body.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("no JSON object in the reply");
@@ -49,8 +50,9 @@ async function complete(messages: ChatMessage[], maxTokens: number): Promise<str
         messages,
         temperature: config.ai.temperature,
         top_p: 1,
-        max_tokens: maxTokens,
+        max_tokens: Math.round(maxTokens * config.ai.maxTokensScale),
         stream: false,
+        ...config.ai.extraBody,
       }),
       signal: AbortSignal.timeout(config.ai.timeoutMs),
       cache: "no-store",

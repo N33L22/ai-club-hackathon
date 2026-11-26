@@ -52,7 +52,11 @@ export type SourceStatus =
   | "not_found"
   | "retracted"
   | "student_added"
+  /** A database could not be reached, so the check did not finish. Never reported as Not found. */
+  | "unavailable"
   | "pending";
+
+export type ScholarlyService = "crossref" | "openalex";
 
 export type StepState = "pass" | "warn" | "fail" | "skip";
 
@@ -77,6 +81,8 @@ export interface SourceVerification {
   scores?: MatchScores;
   checkedAt: string;
   confirmedByStudent?: boolean;
+  /** Databases that could not be reached during this check (the result may be incomplete). */
+  unavailable?: ScholarlyService[];
 }
 
 /** What the student told us about a reference (structured or free text). */
@@ -104,7 +110,7 @@ export interface EvidenceSentence {
   score?: number;
 }
 
-export type ScopeKind = "causal" | "certainty" | "generalisation";
+export type ScopeKind = "causal" | "certainty" | "generalisation" | "magnitude" | "population" | "polarity";
 
 export interface ScopeFlag {
   kind: ScopeKind;
@@ -123,7 +129,16 @@ export type UncheckedReason =
   | "ai_unavailable"
   | "rate_limited"
   | "quote_not_in_source"
+  /** The AI's evidence sentence is in the source but shares too little with the claim. */
+  | "evidence_not_relevant"
   | "invalid_ai_output";
+
+/** Where a sample result came from (sample results are never live AI checks). */
+export interface SampleInfo {
+  provenance: "recorded" | "prepared";
+  at: string;
+  model?: string;
+}
 
 export interface ClaimCheck {
   verdict: ClaimVerdict;
@@ -139,6 +154,10 @@ export interface ClaimCheck {
   textOrigin: TextOrigin;
   model?: string;
   checkedAt: string;
+  /** Set when only part of a long text was checked. */
+  truncated?: { checked: number; total: number } | null;
+  /** Set on sample results (mode "sample"). */
+  sample?: SampleInfo;
 }
 
 /* ------------------------------------------------------------------ */
@@ -157,6 +176,8 @@ export interface GroundedSummary {
   model?: string;
   textOrigin: TextOrigin;
   createdAt: string;
+  /** Set when only the first part of a long text was explained. */
+  truncated?: { checked: number; total: number } | null;
 }
 
 /* ------------------------------------------------------------------ */

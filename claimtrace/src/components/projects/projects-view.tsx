@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, FlaskConical, MoreHorizontal, PenLine, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowRight, BookOpen, Download, FlaskConical, MoreHorizontal, PenLine, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -8,12 +8,15 @@ import { toast } from "sonner";
 import { Page, PageHeader } from "@/components/app/page";
 import { StatusDot } from "@/components/trust/trust-badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { extractClaims } from "@/core/evidence/claims";
 import type { Project } from "@/core/model";
 import { sourceLabel } from "@/core/workflow/labels";
 import { loadDemo } from "@/lib/demo";
+import { exportProjectFile } from "@/lib/project-file";
+import { download, slug } from "@/lib/statement-data";
 import { useStore } from "@/lib/store";
+import { DeleteProjectDialog } from "./delete-project-dialog";
 import { NewProjectDialog } from "./new-project-dialog";
 
 function relative(iso: string): string {
@@ -29,7 +32,7 @@ function relative(iso: string): string {
 function ProjectCard({ project, index }: { project: Project; index: number }) {
   const router = useRouter();
   const setCurrent = useStore((s) => s.setCurrentProject);
-  const deleteProject = useStore((s) => s.deleteProject);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const sources = useStore((s) => s.sources);
   const stats = useMemo(() => {
     const list = Object.values(sources).filter((x) => x.projectId === project.id);
@@ -55,24 +58,27 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
         </span>
         <div className="flex items-center gap-1.5">
           {project.isDemo && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 ring-1 ring-violet-200 ring-inset">Demo</span>}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="grid size-8 place-items-center rounded-lg text-ink-400 hover:bg-ink-100 hover:text-ink-700" aria-label="Project actions">
+          {/* not modal: it opens a dialog, and two stacked modal layers can leave the page unclickable */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger className="relative z-10 grid size-8 place-items-center rounded-lg text-ink-500 ring-1 ring-ink-200 hover:bg-ink-100 hover:text-ink-800" aria-label={`Actions for ${project.title}`}>
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="text-rose-700 focus:text-rose-700"
-                onSelect={() => {
-                  deleteProject(project.id);
-                  toast.success(`Deleted "${project.title}" and its data from this browser.`);
-                }}
-              >
-                <Trash2 className="size-4" /> Delete project
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={open}>
+                <ArrowRight className="size-4" /> Open
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => download(`${slug(project.title)}.claimtrace.json`, exportProjectFile(project.id), "application/json")}>
+                <Download className="size-4" /> Export project file
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-rose-700 focus:text-rose-700" onSelect={() => setConfirmDelete(true)}>
+                <Trash2 className="size-4" /> Delete project…
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+      <DeleteProjectDialog project={project} open={confirmDelete} onOpenChange={setConfirmDelete} />
       <button type="button" onClick={open} className="mt-4 text-left after:absolute after:inset-0 after:content-['']">
         <h3 className="text-[16px] font-semibold tracking-[-0.015em] text-ink-950">{project.title}</h3>
       </button>
